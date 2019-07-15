@@ -10,7 +10,7 @@
             "command": "i686-w64-mingw32-g++",
             "args": [
                 //Compilation Flags and Options
-                "-std=c++11", "client.cpp", "-o", "dee33.exe", "-s", "-lws2_32", "-Wno-write-strings", "-fno-exceptions", "-fmerge-all-constants", "-static-libstdc++", "-static-libgcc"
+                "-std=c++11", "client-commands.cpp", "-o", "dee33.exe", "-s", "-lws2_32", "-Wno-write-strings", "-fno-exceptions", "-fmerge-all-constants", "-static-libstdc++", "-static-libgcc"
             ],
             "group": {
                 "kind": "build",
