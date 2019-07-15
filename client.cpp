@@ -63,13 +63,12 @@ void RevShell()
 				std::cout << "Command parsed: pwd" << std::endl;
 			}
 			else if (strcmp(CommandReceived, "exit\n") == 0) {
-				std::cout << "Command parsed: exit" << std::endl;
+				std::cout << "Command parsed: exit";
+				std::cout << "Closing connection..." << std::endl;
 			}
 			else {
 				std::cout << "Command not parsed!" << std::endl;
 			}
-			
-			
 			memset(CommandReceived, 0, sizeof(CommandReceived));
 		}		
 		std::cin.get();
