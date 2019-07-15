@@ -53,7 +53,7 @@ class BotCmd(threading.Thread):
                 for _ in range(len(SocketThread)):
                     time.sleep(0.1)
                     self.q.put(SendCmd+"\n")
-                time.sleep(3)
+                time.sleep(1)
                 os._exit(0)
             else:
                 print("[+] Sending Command: {} to {} bots.".format(SendCmd,str(len(SocketThread))))
