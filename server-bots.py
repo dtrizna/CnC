@@ -60,8 +60,11 @@ class BotCmd(threading.Thread):
                     self.q.put(SendCmd+"\n")
                 time.sleep(1)
                 os._exit(0)
-            elif (SendCmd == "list"):
+            elif (SendCmd == "list bots"):
                 print("[!] Bots: {}".format(ClientDict))
+                pass
+            elif (SendCmd == "list q" or SendCmd == "list queue"):
+                print("[!] Queue: {}".format(list(self.q.queue)))
                 pass
             else:
                 print("[+] Sending Command: {} to {} bots.".format(SendCmd,str(len(SocketThread))))
