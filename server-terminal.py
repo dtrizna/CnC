@@ -7,9 +7,8 @@ import time
 from cmd import Cmd
 
 q = queue.Queue()
-SocketThread = []
+SocketThreads = []
 ClientDict = {}
-
 
 def main():
     if (len(sys.argv) < 3):
@@ -36,7 +35,7 @@ def listener(lhost,lport,q):
     while True:
         (client, client_address) = server.accept()
         newthread = BotHandler(client,client_address, q, ClientDict)
-        SocketThread.append(newthread)
+        SocketThreads.append(newthread)
         newthread.start()
 
 
@@ -48,18 +47,22 @@ class Terminal(Cmd):
         self.q = qv3
     
     def do_exit(self,args):
-        for _ in range(len(SocketThread)):
+        for _ in range(len(SocketThreads)):
             time.sleep(0.1)
             self.q.put("exit\n")
         time.sleep(1)
         os._exit(0)
 
     def emptyline(self):
-        self.q.put("\n")
+        for _ in range(len(SocketThreads)):
+            time.sleep(0.1)
+            self.q.put("\n")
 
     def default(self, args):
-        # print("[DBG] Command entered: {}".format(args))
-        self.q.put(args+"\n")
+        print("[DBG] Sending command to {} bots: {}".format(len(SocketThreads),args))
+        for _ in range(len(SocketThreads)):
+            time.sleep(0.1)
+            self.q.put(args+"\n")
         time.sleep(0.5) # To not input prompt before response
 
 
