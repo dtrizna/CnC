@@ -70,6 +70,7 @@ class Terminal(Cmd):
         for _ in range(len(SocketThreads)):
             time.sleep(0.1)
             self.q.put("\n")
+        time.sleep(0.5)
 
     def default(self, args):
         #print("[DBG] Sending command to {} bots: {}".format(len(SocketThreads),args))
