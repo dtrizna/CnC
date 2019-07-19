@@ -40,7 +40,7 @@ def listener(lhost,lport,q):
 
 
 class Terminal(Cmd):
-    prompt = ''
+    prompt = '$ '
     def __init__(self, qv3):
         # super() needed to correctly initialize class
         super(Terminal, self).__init__()

