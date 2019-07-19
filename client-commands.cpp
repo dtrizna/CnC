@@ -12,19 +12,19 @@ void whoami(char* returnval)
 {
 	DWORD bufferlen = 257;
 	// Call WINAPI method, assign it's response to returnval pointer.
-	GetUserName(returnval, &bufferlen);
+	GetUserNameA(returnval, &bufferlen);
 }
 
 void hostname(char* returnval)
 {
 	DWORD bufferlen = 257;
-	GetComputerName(returnval,&bufferlen);
+	GetComputerNameA(returnval,&bufferlen);
 }
 
 void pwd(char* returnval)
 {
-	TCHAR tempvar[MAX_PATH];
-	GetCurrentDirectory(MAX_PATH,tempvar); //returns necessary value into tempvar
+	char tempvar[MAX_PATH];
+	GetCurrentDirectoryA(MAX_PATH,tempvar); //returns necessary value into tempvar
 	strcat(returnval,tempvar); //you need to put that value into returnval
 }
 
