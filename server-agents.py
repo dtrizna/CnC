@@ -72,7 +72,7 @@ class Terminal(Cmd):
         # TODO
         print("start <arguments>")
         print("\tlisener <type>")
-        print("\t\ttcp>")
+        print("\t\t<tcp>")
 
     def do_list(self,args):
         #print("[DBG] args.split(' '): {}".format(args.split(' ')))
@@ -98,7 +98,7 @@ class Terminal(Cmd):
     def help_list(self):
         # TODO
         print("list <arguments>")
-        print("\tagents\nlhost\nlport\nlisteners")
+        print("\tagents\n\tlhost\n\tlport\n\tlisteners")
 
     def do_set(self,args):
         #print("[DBG] args.split(' '): {}".format(args.split(' ')))
@@ -230,7 +230,7 @@ class BotHandler(threading.Thread):
         if banner:
             print("\n[*] Received banner from {}:\n\n{}".format(AgentName, banner))
         time.sleep(0.5)
-        
+
         # Command loop
         while True:
             RecvBotCmd = self.q.get()

