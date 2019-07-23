@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 	stealth = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(stealth, SW_SHOWNORMAL);
 
-	std::cout << "Work in progres..\n";
+	std::cout << "Work in progress..\n";
 	if (argc == 3)
 	{
 		int port = atoi(argv[2]);
