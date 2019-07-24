@@ -52,7 +52,7 @@ class Terminal(Cmd):
         self.ClientDict = ClientDict
         self.shell = False
         self.q = None
-        self.agent = ''
+        self.agent = None
         self.parentagent = ''
         self.prompt = '$ '
         self.tokill = ''
@@ -129,10 +129,15 @@ class Terminal(Cmd):
         if self.agent != None and args.split(' ')[0] == '':
             self.tokill = input("Do you want to kill current agent? [y/N] ")
             if self.tokill.lower() == 'y':
-                self.q = ClientDict[self.agent][1]
-                self.q.put('exit\n')
+                if self.shell == True:
+                    self.q.put("exit\n")
+                    self.shell = False
+                    self.do_interact(self.parentagent)
+                self.q.put("kill\n")
                 self.q = None
                 self.prompt = '$ '
+                del self.ClientDict[self.agent]
+                self.agent = None
             elif self.tokill.lower() == 'n' or self.tokill == '':
                 return
             else:
@@ -143,10 +148,15 @@ class Terminal(Cmd):
         else:
             self.agent = args
             try:
+                if self.shell == True:
+                    self.q.put("exit\n")
+                    self.shell = False
                 self.q = ClientDict[self.agent][1]
-                self.q.put('exit\n')
+                self.q.put('kill\n')
                 self.q = None
                 self.prompt = '$ '
+                del self.ClientDict[self.agent]
+                self.agent = None
             except KeyError:
                 print("[-] No such agent. Use: 'list agents'")
             except Exception as ex:
