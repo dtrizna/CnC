@@ -1,9 +1,9 @@
 TODO:
    - verification if agent is alive?
-   [DONE] kill agent
+   - [DONE] kill agent
    - list commands in agent mode!
-   [DONE] correct exit from shell
-   [DONE] help messages of Cmd 
+   - [DONE] correct exit from shell
+   - [DONE] help messages of Cmd 
    - add commands:
         getpid
         upload file
