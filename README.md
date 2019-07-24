@@ -5,11 +5,11 @@ TODO:
  
   High priority:
    - add commands:
-        -- getpid
-        -- upload file
-        -- migrate > inject itself
-            --- sRDI + TikiTorch
-            --- PE injection (sevagas)
+        - getpid
+        - upload file
+        - migrate > inject itself
+            - sRDI + TikiTorch
+            - PE injection (sevagas)
   Low priority:
    - list commands in agent mode!
    - verification if agent is alive?
