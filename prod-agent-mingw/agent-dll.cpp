@@ -238,3 +238,4 @@ extern "C" __declspec(dllexport) int dllmain(int argc, char **argv)
 // i686-w64-mingw32-g++ -std=c++11 -shared -o agent.dll agent-dll.o -s -lws2_32 -Wno-write-strings -fno-exceptions -fmerge-all-constants -static-libstdc++ -static-libgcc
 // Results:
 // 15K agent.dll
+// See: https://www.transmissionzero.co.uk/computing/building-dlls-with-mingw/
