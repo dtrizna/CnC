@@ -10,6 +10,7 @@ TODO:
         - migrate > inject itself
             - sRDI + TikiTorch
             - PE injection (sevagas)
+  
   Low priority:
    - list commands in agent mode!
    - verification if agent is alive?
