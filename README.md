@@ -9,6 +9,9 @@ TODO:
         - upload file
         - migrate > inject itself
             - sRDI + TikiTorch
+               - make a DLL payload [DONE]
+               - convert to SC
+               - weaponize
             - PE injection (sevagas)
             - native hollowing
   
