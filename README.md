@@ -5,7 +5,7 @@ TODO:
  
   High priority:
    - add commands:
-        - getpid
+        - getpid [DONE]
         - upload file
         - migrate > inject itself
             - sRDI + TikiTorch

