@@ -15,4 +15,9 @@ TODO:
    - list commands in agent mode!
    - verification if agent is alive?
    - add HTTP transport
-   - write C# agent
+   - write .NET agent (C#, boolang)
+   - add more transports:
+      - DNS
+      - DropBox
+      - Slack
+   - write Python agent
