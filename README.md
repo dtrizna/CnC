@@ -10,7 +10,7 @@ TODO:
         - migrate > inject itself
             - sRDI + TikiTorch
             - PE injection (sevagas)
-            - Process Hollowing
+            - native hollowing
   
   Low priority:
    - list commands in agent mode!
