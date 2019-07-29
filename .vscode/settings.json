@@ -39,6 +39,7 @@
         "clocale": "cpp",
         "cwctype": "cpp",
         "string_view": "cpp",
-        "cstdarg": "cpp"
+        "cstdarg": "cpp",
+        "cinttypes": "cpp"
     }
 }

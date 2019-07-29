@@ -3,10 +3,13 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
-
 #include <stdio.h>
 
-// DEBUG, TEMP.
+// Base64 decode/encode requred
+#include <inttypes.h>
+#include <string.h>
+
+// std::cout << "below header needed for this if use somewhere!"
 //#include <iostream>
 
 DWORD getpid(){
