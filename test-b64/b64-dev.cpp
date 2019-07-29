@@ -1,8 +1,9 @@
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
-//#include <inttypes.h>
 #include <string.h>
+
+/* #region Base64 functions */
 
 size_t b64_encoded_size(size_t inlen)
 {
@@ -155,16 +156,18 @@ char* b64_decode(const char *in)
 	return out;
 }
 
+/* #endregion */
+
 int main() {
     // ENCODING WORKS AS:
     const unsigned char* test = reinterpret_cast<const unsigned char *>( "test" );
     char * out;
     out =  b64_encode(test,sizeof(test));
-    printf("%s if encoded as Base64 is: %s\n",test,out);
+    //printf("%s if encoded as Base64 is: %s\n",test,out);
 
     // DECODING WORKS AS:
     char * test2 = "dGVzdGluZ3NvbWVsb25nc3R5bGUK";
     char * out2;
     out2 = b64_decode(test2);
-    printf("%s if decoded as Base64 is: %s\n", test2, out2);
+    //printf("%s if decoded as Base64 is: %s\n", test2, out2);
 }
