@@ -281,7 +281,7 @@ static int encode( FILE *infile, FILE *outfile, int linesize )
     unsigned char out[4];
     int i, len, blocksout = 0;
     int retcode = 0;
-
+    
     *in = (unsigned char) 0;
     *out = (unsigned char) 0;
     while( feof( infile ) == 0 ) {

