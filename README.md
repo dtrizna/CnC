@@ -6,6 +6,10 @@ TODO:
   High priority:
    - add commands:
         - getpid [DONE]
+        - file operations
+            - b64 functions C++ [DONE]
+            - i/o operations C++ [IN PROCESS]
+            - upload/download PoC 
         - migrate > inject itself
             - sRDI + TikiTorch
                - make a DLL payload [DONE]
@@ -15,7 +19,6 @@ TODO:
             - native hollowing
   
   Low priority:
-   - upload file [FAILED] [TRIED TO IMPMENT USING B64 - FOR NOW DELAYED..]
    - list commands in agent mode!
    - verification if agent is alive?
    - add HTTP transport
