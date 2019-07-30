@@ -19,10 +19,10 @@ TODO:
             - native hollowing
   
   Low priority:
-   - list commands in agent mode!
-   - verification if agent is alive?
    - add HTTP transport
    - write .NET agent (C#, boolang)
+   - list commands in agent mode!
+   - verification if agent is alive?
    - add more transports:
       - DNS
       - DropBox
