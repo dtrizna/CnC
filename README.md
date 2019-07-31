@@ -9,14 +9,18 @@ TODO:
         - file operations
             - b64 functions C++ [DONE]
             - i/o operations C++ [DONE]
-            - upload file [DONE]
+            - upload file [DONE] 
+               (implemented as b64 version and certutil.exe)
+               - make direct transfer without b64 functions as per?:
+               https://stackoverflow.com/questions/25634483/send-binary-file-over-tcp-ip-connection
+               https://codereview.stackexchange.com/questions/43914/client-server-implementation-in-c-sending-data-files
         - migrate > inject itself
             - sRDI + TikiTorch
                - make a DLL payload [DONE]
                - convert to SC
                - weaponize
             - PE injection (sevagas)
-            - native hollowing
+            - native hollowing (xpn's evade blogpost)
   
   Low priority:
    - add HTTP transport
