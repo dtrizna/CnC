@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 	else {
-		printf("[+] Injecting into: %s", argv[1]);
+		printf("[+] Injecting into: %s\n", argv[1]);
 		int pid = atoi(argv[1]);
 		example_loadlibrary(pid);
 		return 0;
