@@ -235,6 +235,8 @@ extern "C" __declspec(dllexport) int dllmain(int argc, char **argv)
 	// Idea of searching window and saying to show it (SW_HIDE to hide)
 	stealth = FindWindowA("ConsoleWindowClass", NULL);
 	ShowWindow(stealth, SW_HIDE);
+	
+	MessageBox(0,"test","test title",0);
 
 	if (argc == 3)
 	{
