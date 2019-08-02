@@ -24,6 +24,8 @@ TODO:
   
   Low priority:
    - add HTTP transport
+      - may be worth to consider this HTTP client:
+         https://github.com/djhohnstein/CPPWebClient
    - write .NET agent (C#, boolang)
    - implement prompt display via queue (if response queue emptry - show)
    - list commands in agent mode!
