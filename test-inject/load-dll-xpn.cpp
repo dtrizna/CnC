@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "Windows.h"
+#include "windows.h"
 
 int example_loadlibrary(int pid) {
 
@@ -18,14 +18,14 @@ int example_loadlibrary(int pid) {
 		return 1;
 	}
 
-	void *_loadLibrary = GetProcAddress(LoadLibraryA("kernel32.dll"), "LoadLibraryA");
+	void *_loadLibrary = (void *)GetProcAddress(LoadLibraryA("kernel32.dll"), "LoadLibraryA");
 	if (_loadLibrary == NULL) {
 		printf("[X] Error: Could not find address of LoadLibrary\n");
 		return 1;
 	}
 
 	GetCurrentDirectoryA(MAX_PATH, currentDir);
-	strncat_s(currentDir, "\\agent.dll", MAX_PATH);
+	strcat(currentDir, "\\agent.dll");
 
 	printf("[*] Injecting path to load DLL: %s\n", currentDir);
 
@@ -38,5 +38,19 @@ int example_loadlibrary(int pid) {
 	if (CreateRemoteThread(processHandle, NULL, 0, (LPTHREAD_START_ROUTINE)_loadLibrary, alloc, 0, NULL) == NULL) {
 		printf("[X] Error: CreateRemoteThread failed [%d] :(\n", GetLastError());
 		return 2;
+	}
+	return 0;
+}
+
+int main(int argc, char** argv) {
+	if (argc != 2) {
+		printf("Please provide pid to inject into!");
+		return 1;
+	}
+	else {
+		printf("[+] Injecting into: %s\n", argv[1]);
+		int pid = atoi(argv[1]);
+		example_loadlibrary(pid);
+		return 0;
 	}
 }
