@@ -25,7 +25,7 @@ int example_loadlibrary(int pid) {
 	}
 
 	GetCurrentDirectoryA(MAX_PATH, currentDir);
-	strncat_s(currentDir, "\\injectme.dll", MAX_PATH);
+	strncat_s(currentDir, "\\agent.dll", MAX_PATH);
 
 	printf("[*] Injecting path to load DLL: %s\n", currentDir);
 
